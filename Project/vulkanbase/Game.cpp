@@ -873,6 +873,7 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, -1.f, 0.f));
     transform = glm::scale(transform, glm::vec3(0.025f));
     transform = glm::rotate(transform, glm::radians(90.f), glm::vec3(1.f, 0, 0));
+    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
     vkCmdPushConstants(commandBuffer, pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
     m_p3DObject->Record(commandBuffer);
 
@@ -883,10 +884,12 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     m_p2DPipeline->Record(commandBuffer, m_vDescriptorSets[m_CurrentFrame]);
 
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, 0.f));
+    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
     vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
     m_p2DObject->Record(commandBuffer);
     
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.f, 0.f));
+    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 1, .0f));
     vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
     m_p2DOvalObject->Record(commandBuffer);
 
@@ -1197,22 +1200,15 @@ void Game::createDescriptorSetLayout()
 
 void Game::updateUniformBuffer(uint32_t currentImage)
 {
-    m_pCamera->CalculateProjMat();
-    m_pCamera->CalculateViewMat();
-
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), /*Time::GetElapesedSec() **/ glm::radians(m_RotationSpeed), glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.view = m_pCamera->CalculateViewMatrix();
-    //ubo.view  = glm::lookAt(m_pCamera->GetPosition(), glm::vec3{0.f, 0.f, 0.f}, glm::vec3(0.0f, 0.0f, 1.0f));// up vector
-    ubo.view = m_pCamera->GetViewMat();
-    //ubo.proj  = glm::perspective(m_pCamera->GetfieldOfView(), m_pCamera->GetAspectRatio(), m_pCamera->GetNearPlane(), m_pCamera->GetFarPlane());
-    ubo.proj  = m_pCamera->GetProjMat();
+    ubo.view = m_pCamera->CalculateViewMat();
+    ubo.proj  = m_pCamera->CalculateProjMat();
 
     ubo.proj[1][1] *= -1; // flip the y-axis. now it wil be from bottom(0) to top(1)
 
     //Copy the data in to the current Uniform buffer object
     memcpy(m_vUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-
 }
 
 void Game::createTextureImage()
@@ -1673,29 +1669,25 @@ void Camera::keyEvent(int key, int scancode, int action, int mods)
     if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
         m_Position += m_Forward * cameraspeed;
-        //m_Yaw += 0.1f;
     }
     if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
         m_Position -= m_Forward * cameraspeed;
-        //m_Yaw -= 0.1f;
     }
     if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
         m_Position += m_Right * cameraspeed;
-        // m_Pitch += 0.1f;
     }
     if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
         m_Position -= m_Right * cameraspeed;
-        //m_Pitch -= 0.1f;
     }
 
 }
 
 void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
 {
-    const float RotateSpeed{ 0.001f };
+    const float RotateSpeed{ 0.0005f };
 
     int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
     if (state == GLFW_PRESS)
@@ -1721,20 +1713,20 @@ void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
-void Camera::CalculateViewMat()
+glm::mat4 Camera::CalculateViewMat()
 {
-    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, glm::vec3{ 0.f, 0.f, 1.f });
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, m_Up);
     rotation = glm::rotate(rotation, m_Pitch, glm::vec3{ 1.f,0.f,0.f });
 
     m_Forward = glm::normalize(rotation[2]);
-    m_Right = glm::normalize(glm::cross(glm::vec3{ 0.f, 0.f, 1.f }, m_Forward));
+    m_Right = glm::normalize(glm::cross(m_Up, m_Forward));
 
-    m_ViewMat = static_cast<glm::mat4>(glm::lookAt(m_Position, m_Position + m_Forward, glm::vec3{ 0.f, 0.f, 1.f }));
+    return  glm::lookAt(m_Position, m_Position + m_Forward, m_Up);
 }
 
-void Camera::CalculateProjMat()
+glm::mat4 Camera::CalculateProjMat()
 {
-    m_ProjMat = glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
+    return glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
 
 }
 

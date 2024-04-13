@@ -21,7 +21,7 @@
 #include "vulkanbase/Object.h"
 
 
-class Camera
+class Camera final
 {
 public:
     Camera(const glm::vec3& position, float fov, float ar)
@@ -32,16 +32,8 @@ public:
     void mouseMove(GLFWwindow* window, double xpos, double ypos);
     void mouseEvent(GLFWwindow* window, int button, int action, int mods);
 
-    glm::vec3 GetPosition()const { return m_Position; };
-    float GetfieldOfView()const { return m_FieldOfView; };
-    float GetAspectRatio()const { return m_AspectRatio; };
-    float GetNearPlane()const { return m_NearPlane; };
-    float GetFarPlane()const { return m_FarPlane; };
-    glm::mat4 GetProjMat()const { return m_ProjMat; };
-    glm::mat4 GetViewMat()const { return m_ViewMat; };
-
-    void CalculateViewMat();
-    void CalculateProjMat();
+    glm::mat4 CalculateViewMat();
+    glm::mat4 CalculateProjMat();
 
 private:
     glm::vec3 m_Position{};
@@ -51,11 +43,9 @@ private:
     const float m_NearPlane{ 0.1f };
     const float m_FarPlane{ 10.f };
 
-    glm::mat4 m_ViewMat{};
-    glm::mat4 m_ProjMat{};
     glm::vec3 m_Forward{};
     glm::vec3 m_Right{};
-    glm::vec3 m_Up{};
+    glm::vec3 m_Up{ glm::vec3{ 0.f,0.f,1.f } };
     glm::vec2 m_DragStart{};
     float m_Yaw{ glm::radians(120.f)};
     float m_Pitch{ glm::radians(-120.f)};
@@ -125,6 +115,7 @@ private:
   
     //const std::string m_ModelPath{ "models/room.obj" };
     const std::string m_TexturePath{ "textures/viking_room.png" };
+    const std::string m_TexturePath2{ "textures/dae.png" };
 
 
     std::vector < VkSemaphore> m_vImageAvailableSemaphores;
