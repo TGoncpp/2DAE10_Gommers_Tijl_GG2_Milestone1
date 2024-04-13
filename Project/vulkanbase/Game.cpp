@@ -111,7 +111,7 @@ void Game::initVulkan()
     m_p2DPipeline = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader.frag.spv", false);
     m_p2DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
-    m_pCamera = std::make_unique< Camera>(glm::vec3{ 2.0f, 2.0f, 2.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
+    m_pCamera = std::make_unique< Camera>(glm::vec3{ 3.0f, 2.0f, 2.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
     createCommandPool();
     createColorResources();
     createDepthResources();
@@ -1198,14 +1198,15 @@ void Game::createDescriptorSetLayout()
 void Game::updateUniformBuffer(uint32_t currentImage)
 {
     m_pCamera->CalculateProjMat();
+    m_pCamera->CalculateViewMat();
 
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), /*Time::GetElapesedSec() **/ glm::radians(m_RotationSpeed), glm::vec3(0.0f, 0.0f, 1.0f));
     //ubo.view = m_pCamera->CalculateViewMatrix();
-    ubo.view  = glm::lookAt(m_pCamera->GetPosition(), glm::vec3{0.f, 0.f, 0.f}, glm::vec3(0.0f, 0.0f, 1.0f));// up vector
-    //m_pCamera->CalculateViewMat();
-    ubo.proj  = glm::perspective(m_pCamera->GetfieldOfView(), m_pCamera->GetAspectRatio(), m_pCamera->GetNearPlane(), m_pCamera->GetFarPlane());
-    //ubo.proj  = m_pCamera->GetProjMat();
+    //ubo.view  = glm::lookAt(m_pCamera->GetPosition(), glm::vec3{0.f, 0.f, 0.f}, glm::vec3(0.0f, 0.0f, 1.0f));// up vector
+    ubo.view = m_pCamera->GetViewMat();
+    //ubo.proj  = glm::perspective(m_pCamera->GetfieldOfView(), m_pCamera->GetAspectRatio(), m_pCamera->GetNearPlane(), m_pCamera->GetFarPlane());
+    ubo.proj  = m_pCamera->GetProjMat();
 
     ubo.proj[1][1] *= -1; // flip the y-axis. now it wil be from bottom(0) to top(1)
 
@@ -1662,3 +1663,73 @@ VkSampleCountFlagBits Game::getMaxUsableSampleCount()
     
     return VK_SAMPLE_COUNT_1_BIT;
 }
+
+//------------------------------------------------------------
+//Camera
+//-----------------------------------------------------------
+void Camera::keyEvent(int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        //m_Position.x -= 0.2f;
+        m_Yaw += 0.1f;
+    }
+    if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Yaw -= 0.1f;
+    }
+    if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Pitch += 0.1f;
+    }
+    if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Pitch -= 0.1f;
+    }
+
+}
+
+void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
+{
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+    if (state == GLFW_PRESS)
+    {
+        float dx = static_cast<float>(xpos) - m_DragStart.x;
+        if (dx > 0) {
+            m_Yaw += 0.01f;
+        }
+        else {
+            m_Yaw -= 0.01f;
+        }
+    }
+}
+
+void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    {
+        std::cout << "right mouse button pressed\n";
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        m_DragStart.x = static_cast<float>(xpos);
+        m_DragStart.y = static_cast<float>(ypos);
+    }
+}
+
+void Camera::CalculateViewMat()
+{
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, glm::vec3{ 0.f, 0.f, 1.f });
+    rotation = glm::rotate(rotation, m_Pitch, glm::vec3{ 1.f,0.f,0.f });
+
+    m_Forward = glm::normalize(rotation[2]);
+    m_Right = glm::normalize(glm::cross(glm::vec3{ 0.f, 0.f, 1.f }, m_Forward));
+
+    m_ViewMat = static_cast<glm::mat4>(glm::lookAt(m_Position, m_Position + m_Forward, glm::vec3{ 0.f, 0.f, 1.f }));
+}
+
+void Camera::CalculateProjMat()
+{
+    m_ProjMat = glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
+
+}
+
