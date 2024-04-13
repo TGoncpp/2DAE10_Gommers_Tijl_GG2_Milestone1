@@ -1669,38 +1669,44 @@ VkSampleCountFlagBits Game::getMaxUsableSampleCount()
 //-----------------------------------------------------------
 void Camera::keyEvent(int key, int scancode, int action, int mods)
 {
+    const float cameraspeed{ 0.2f };
     if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
-        //m_Position.x -= 0.2f;
-        m_Yaw += 0.1f;
+        m_Position += m_Forward * cameraspeed;
+        //m_Yaw += 0.1f;
     }
     if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
-        m_Yaw -= 0.1f;
+        m_Position -= m_Forward * cameraspeed;
+        //m_Yaw -= 0.1f;
     }
     if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
-        m_Pitch += 0.1f;
+        m_Position += m_Right * cameraspeed;
+        // m_Pitch += 0.1f;
     }
     if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
     {
-        m_Pitch -= 0.1f;
+        m_Position -= m_Right * cameraspeed;
+        //m_Pitch -= 0.1f;
     }
 
 }
 
 void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
 {
+    const float RotateSpeed{ 0.001f };
+
     int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
     if (state == GLFW_PRESS)
     {
         float dx = static_cast<float>(xpos) - m_DragStart.x;
-        if (dx > 0) {
-            m_Yaw += 0.01f;
-        }
-        else {
-            m_Yaw -= 0.01f;
-        }
+        m_Yaw += dx * RotateSpeed * Time::GetElapesedSec();
+        
+        float dy = static_cast<float>(ypos) - m_DragStart.y;
+        m_Pitch += dy * RotateSpeed * Time::GetElapesedSec();
+
+        m_DragStart = glm::vec2{ xpos, ypos };
     }
 }
 
@@ -1708,7 +1714,6 @@ void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
     {
-        std::cout << "right mouse button pressed\n";
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
         m_DragStart.x = static_cast<float>(xpos);
