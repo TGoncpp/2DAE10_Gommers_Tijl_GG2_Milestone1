@@ -113,9 +113,7 @@ private:
 
 
    VkCommandPool m_CommandPool;
-  
-    //const std::string m_ModelPath{ "models/room.obj" };
-   
+     
     std::vector < VkSemaphore> m_vImageAvailableSemaphores;
     std::vector < VkSemaphore> m_vRenderFinishedAvailableSemaphores;
     std::vector < VkFence> m_vInFlightFences;
@@ -127,20 +125,10 @@ private:
     std::vector<void*> m_vUniformBuffersMapped;
     VkDescriptorPool m_DescriptorPool;
     VkDescriptorPool m_DescriptorPool2D;
-    //std::vector<VkDescriptorSet> m_vDescriptorSets;
-    //std::vector<VkDescriptorSet> m_vDescriptorSets2D;
-
-    //uint32_t m_MipLvl;
+    
     VkSampleCountFlagBits m_MsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    //VkImage m_TextureImage;
-    //VkImage m_TextureImag2De;
-    //VkDeviceMemory m_TextureImageMemory;
-    //VkDeviceMemory m_TextureImageMemory2D;
-    //VkImageView m_TextureImageView;
-    //VkImageView m_TextureImageView2D;
-    //VkSampler m_TextureSampler;
-
+   
     VkImage m_DepthImage;
     VkDeviceMemory m_DepthImageMemory;
     VkImageView m_DepthImageView;
@@ -155,6 +143,7 @@ private:
     std::unique_ptr<SceneObject> m_p3DObject2;
 
     std::unique_ptr<Texture> m_TextureRoom;
+    std::unique_ptr<Texture> m_TexturePlane;
     std::unique_ptr<Texture> m_TextureFlashy;
 
     std::vector<Vertex2D> m_vsQuare2D

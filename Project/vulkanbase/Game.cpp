@@ -120,11 +120,8 @@ void Game::initVulkan()
 
     m_TextureRoom   = std::make_unique<Texture>("textures/viking_room.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
     m_TextureFlashy = std::make_unique<Texture>("textures/flashy.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
-    //createTextureImage(m_TextureImage, m_TextureImageMemory, "textures/viking_room.png");
-    //createTextureImage(m_TextureImag2De, m_TextureImageMemory2D, "textures/flashy.jpg");
-    //createTextureImageView(m_TextureImageView, m_TextureImage);
-    //createTextureImageView(m_TextureImageView2D, m_TextureImag2De);
-    //createTextureSampler();
+    m_TexturePlane = std::make_unique<Texture>("textures/vehicle_diffuse.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
+    
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
     m_p3DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
@@ -136,10 +133,8 @@ void Game::initVulkan()
     createUniformBuffers();
     m_TextureRoom->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
     m_TextureFlashy->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
-    //createDescriptorPool(m_DescriptorPool);
-    //createDescriptorPool(m_DescriptorPool2D);
-    //createDescriptorSets(m_DescriptorPool, m_vDescriptorSets, m_TextureImageView);
-    //createDescriptorSets(m_DescriptorPool2D, m_vDescriptorSets2D, m_TextureImageView2D);
+    m_TexturePlane->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
+   
     createSyncObjects();
 }
 
@@ -159,21 +154,15 @@ void Game::cleanup()
     vkDestroyImage(m_LogicalDevice, m_ColorImage, nullptr);
     vkFreeMemory(m_LogicalDevice, m_ColorImageMemory, nullptr);
     cleanupSwapchain();
-    //vkDestroySampler(m_LogicalDevice, m_TextureSampler, nullptr);
-    //vkDestroyImageView(m_LogicalDevice, m_TextureImageView, nullptr);
-    //vkDestroyImageView(m_LogicalDevice, m_TextureImageView2D, nullptr);
-    //vkDestroyImage(m_LogicalDevice, m_TextureImag2De, nullptr);
-    //vkDestroyImage(m_LogicalDevice, m_TextureImage, nullptr);
-    //vkFreeMemory(m_LogicalDevice, m_TextureImageMemory, nullptr);
-    //vkFreeMemory(m_LogicalDevice, m_TextureImageMemory2D, nullptr);
+   
     m_TextureFlashy->Destroy();
     m_TextureRoom->Destroy();
+    m_TexturePlane->Destroy();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(m_LogicalDevice, m_vUniformBuffers[i], nullptr);
         vkFreeMemory(m_LogicalDevice, m_vUniformBuffersMemory[i], nullptr);
     }
-    //vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
-    //vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool2D, nullptr);
+   
     vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
     
     m_p3DObject->Destroy(m_LogicalDevice);
@@ -886,6 +875,8 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     object->Record(commandBuffer);
 
     //vehicle 
+    pipeline->Record(commandBuffer, m_TexturePlane->GetDescriptorSets()[m_CurrentFrame]);
+
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, -1.f, 0.f));
     transform = glm::scale(transform, glm::vec3(0.025f));
     transform = glm::rotate(transform, glm::radians(90.f), glm::vec3(1.f, 0, 0));
