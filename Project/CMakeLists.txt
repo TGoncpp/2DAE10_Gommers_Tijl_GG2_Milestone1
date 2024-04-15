@@ -42,7 +42,9 @@ add_executable(Vulkan
 				"vulkanbase/semaphore.h"
 				"vulkanbase/structs.h"
 				"vulkanbase/Time.h" "vulkanbase/Time.cpp" 
-				"main.cpp")
+                "vulkanbase/Texture.h" "vulkanbase/Texture.cpp"
+				"main.cpp" 
+)
 add_dependencies(Vulkan Shaders)
 #add_dependencies(TEXTURES "models/vehicle.obj" "models/room.obj" "models/bunny.obj" "textures/viking_room.png" )
 # Link libraries
@@ -51,12 +53,18 @@ target_link_libraries(Vulkan PRIVATE ${Vulkan_LIBRARIES} glfw)
 
 add_custom_target(copy_resources ALL)
 add_custom_command(
-    TARGET copy_resources POST_BUILD
+    TARGET copy_resources PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/project/models
     $<TARGET_FILE_DIR:Vulkan>/models)
 add_custom_command(
-    TARGET copy_resources POST_BUILD
+    TARGET copy_resources PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/project/textures
     $<TARGET_FILE_DIR:Vulkan>/textures)
+
+
+#add_custom_command(
+#    TARGET Assignment PRE_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_DIR} ${RESOURCES_BINARY_DIR}
+#)

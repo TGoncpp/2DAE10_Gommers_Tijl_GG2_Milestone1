@@ -19,6 +19,7 @@
 //#include "vulkanbase/newCamera.h"
 #include "vulkanbase/Pipeline.h"
 #include "vulkanbase/Object.h"
+#include "vulkanbase/texture.h"
 
 
 class Camera final
@@ -155,6 +156,9 @@ private:
     std::unique_ptr<Pipeline> m_p3DPipeline;
     std::unique_ptr<SceneObject> m_p3DObject;
     std::unique_ptr<SceneObject> m_p3DObject2;
+
+    std::unique_ptr<Texture> m_TextureRoom;
+    std::unique_ptr<Texture> m_TextureFlashy;
 
     std::vector<Vertex2D> m_vsQuare2D
     {

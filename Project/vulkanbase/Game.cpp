@@ -159,6 +159,7 @@ void Game::cleanup()
     vkDestroyImage(m_LogicalDevice, m_TextureImag2De, nullptr);
     vkDestroyImage(m_LogicalDevice, m_TextureImage, nullptr);
     vkFreeMemory(m_LogicalDevice, m_TextureImageMemory, nullptr);
+    vkFreeMemory(m_LogicalDevice, m_TextureImageMemory2D, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(m_LogicalDevice, m_vUniformBuffers[i], nullptr);
@@ -1539,7 +1540,7 @@ void Game::generateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int
 }
 
 VkImageView Game::createImageView(VkImage image, VkFormat format, 
-                                VkImageAspectFlags aspectFlags, uint32_t mipLvls)
+                                  VkImageAspectFlags aspectFlags, uint32_t mipLvls)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType                   = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
