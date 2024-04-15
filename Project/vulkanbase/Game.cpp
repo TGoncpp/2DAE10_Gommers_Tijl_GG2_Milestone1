@@ -116,8 +116,10 @@ void Game::initVulkan()
     createColorResources();
     createDepthResources();
     createFramebuffer();
-    createTextureImage();
-    createTextureImageView();
+    createTextureImage(m_TextureImage, m_TextureImageMemory, "textures/viking_room.png");
+    createTextureImage(m_TextureImag2De, m_TextureImageMemory2D, "textures/flashy.jpg");
+    createTextureImageView(m_TextureImageView, m_TextureImage);
+    createTextureImageView(m_TextureImageView2D, m_TextureImag2De);
     createTextureSampler();
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
@@ -128,8 +130,10 @@ void Game::initVulkan()
     m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
     
     createUniformBuffers();
-    createDescriptorPool();
-    createDescriptorSets();
+    createDescriptorPool(m_DescriptorPool);
+    createDescriptorPool(m_DescriptorPool2D);
+    createDescriptorSets(m_DescriptorPool, m_vDescriptorSets, m_TextureImageView);
+    createDescriptorSets(m_DescriptorPool2D, m_vDescriptorSets2D, m_TextureImageView2D);
     createSyncObjects();
 }
 
@@ -151,6 +155,8 @@ void Game::cleanup()
     cleanupSwapchain();
     vkDestroySampler(m_LogicalDevice, m_TextureSampler, nullptr);
     vkDestroyImageView(m_LogicalDevice, m_TextureImageView, nullptr);
+    vkDestroyImageView(m_LogicalDevice, m_TextureImageView2D, nullptr);
+    vkDestroyImage(m_LogicalDevice, m_TextureImag2De, nullptr);
     vkDestroyImage(m_LogicalDevice, m_TextureImage, nullptr);
     vkFreeMemory(m_LogicalDevice, m_TextureImageMemory, nullptr);
 
@@ -159,6 +165,7 @@ void Game::cleanup()
         vkFreeMemory(m_LogicalDevice, m_vUniformBuffersMemory[i], nullptr);
     }
     vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
+    vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool2D, nullptr);
     vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
     
     m_p3DObject->Destroy(m_LogicalDevice);
@@ -881,7 +888,7 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //----------------------------------------
    //2D PIPELINE
 
-    m_p2DPipeline->Record(commandBuffer, m_vDescriptorSets[m_CurrentFrame]);
+    m_p2DPipeline->Record(commandBuffer, m_vDescriptorSets2D[m_CurrentFrame]);
 
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, 0.f));
     transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
@@ -1045,7 +1052,7 @@ void Game::createUniformBuffers()
 
 }
 
-void Game::createDescriptorPool()
+void Game::createDescriptorPool(VkDescriptorPool& descriptorpool)
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1061,24 +1068,24 @@ void Game::createDescriptorPool()
     poolInfo.maxSets         = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     poolInfo.flags           = 0;
 
-    if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, &descriptorpool) != VK_SUCCESS)
     {
         throw std::runtime_error{ "failed to create decriptor pool" };
     }
 
 }
 
-void Game::createDescriptorSets()
+void Game::createDescriptorSets(VkDescriptorPool& descriptorpool, std::vector<VkDescriptorSet>& vDescriptorSets, VkImageView imageView)
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = m_DescriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    allocInfo.descriptorPool     = descriptorpool;                                 //get fixed after first init
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) ;
     allocInfo.pSetLayouts        = layouts.data();
 
-    m_vDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, m_vDescriptorSets.data()) != VK_SUCCESS)
+    vDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+    if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, vDescriptorSets.data()) != VK_SUCCESS)
     {
         throw std::runtime_error{ "failed to allocate discriptorSets" };
     }
@@ -1093,13 +1100,13 @@ void Game::createDescriptorSets()
         
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView   = m_TextureImageView;
+        imageInfo.imageView   = imageView;
         imageInfo.sampler     = m_TextureSampler;
 
         //here they get combined
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
         descriptorWrites[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet          = m_vDescriptorSets[i];
+        descriptorWrites[0].dstSet          = vDescriptorSets[i];
         descriptorWrites[0].dstBinding      = 0;
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1107,7 +1114,7 @@ void Game::createDescriptorSets()
         descriptorWrites[0].pBufferInfo     = &bufferInfo;
         
         descriptorWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet          = m_vDescriptorSets[i];
+        descriptorWrites[1].dstSet          = vDescriptorSets[i];
         descriptorWrites[1].dstBinding      = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1118,8 +1125,6 @@ void Game::createDescriptorSets()
         vkUpdateDescriptorSets(m_LogicalDevice, 
             static_cast<uint32_t>(descriptorWrites.size()), 
             descriptorWrites.data(), 0, nullptr);
-
-
     }
 }
 
@@ -1201,11 +1206,11 @@ void Game::createDescriptorSetLayout()
 void Game::updateUniformBuffer(uint32_t currentImage)
 {
     UniformBufferObject ubo{};
-    //ubo.model = glm::rotate(glm::mat4(1.0f), /*Time::GetElapesedSec() **/ glm::radians(m_RotationSpeed), glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.view  = m_pCamera->CalculateViewMat();
-    //ubo.view  = m_pCamera->CalculateViewMat();
-    m_pCamera-> CalculateProjMat();
-    m_pCamera-> CalculateProjMat();
+    ubo.model = glm::rotate(glm::mat4(1.0f), /*Time::GetElapesedSec() **/ glm::radians(m_RotationSpeed), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view  = m_pCamera->CalculateViewMat();
+    ubo.proj  = m_pCamera->CalculateProjMat();
+    //m_pCamera->CalculateViewMat();
+    //m_pCamera-> CalculateProjMat();
 
     ubo.proj[1][1] *= -1; // flip the y-axis. now it wil be from bottom(0) to top(1)
 
@@ -1213,11 +1218,11 @@ void Game::updateUniformBuffer(uint32_t currentImage)
     memcpy(m_vUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-void Game::createTextureImage()
+void Game::createTextureImage(VkImage& image, VkDeviceMemory& imageMemory, const std::string& path)
 {
     //load image
     int texWidth{}, textHeight{}, textChannels{};
-    stbi_uc* pixels = stbi_load(m_TexturePath.c_str(), &texWidth, &textHeight, &textChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &textHeight, &textChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * textHeight * 4;
 
     m_MipLvl = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, textHeight)))) + 1;
@@ -1247,12 +1252,12 @@ void Game::createTextureImage()
         VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        m_TextureImage, m_TextureImageMemory);
+        image, imageMemory);
 
-    transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLvl);
-    copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(textHeight));
+    transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLvl);
+    copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(textHeight));
     //transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_MipLvl);
-    generateMipmaps(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, textHeight, m_MipLvl);
+    generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, textHeight, m_MipLvl);
 
     vkDestroyBuffer(m_LogicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(m_LogicalDevice, stagingbufferMemory, nullptr);
@@ -1302,9 +1307,9 @@ void Game::createImage(uint32_t width, uint32_t height, uint32_t mipLvls, VkSamp
 
 }
 
-void Game::createTextureImageView()
+void Game::createTextureImageView(VkImageView& imageView, const VkImage& image)
 {
-    m_TextureImageView = createImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLvl);
+    imageView = createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLvl);
 }
 
 void Game::createColorResources()
@@ -1665,70 +1670,70 @@ VkSampleCountFlagBits Game::getMaxUsableSampleCount()
 //------------------------------------------------------------
 //Camera
 //-----------------------------------------------------------
-//void Camera::keyEvent(int key, int scancode, int action, int mods)
-//{
-//    const float cameraspeed{ 0.2f };
-//    if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position += m_Forward * cameraspeed;
-//    }
-//    if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position -= m_Forward * cameraspeed;
-//    }
-//    if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position += m_Right * cameraspeed;
-//    }
-//    if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position -= m_Right * cameraspeed;
-//    }
-//
-//}
-//
-//void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
-//{
-//    const float RotateSpeed{ 0.0005f };
-//
-//    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-//    if (state == GLFW_PRESS)
-//    {
-//        float dx = static_cast<float>(xpos) - m_DragStart.x;
-//        m_Yaw += dx * RotateSpeed * Time::GetElapesedSec();
-//        
-//        float dy = static_cast<float>(ypos) - m_DragStart.y;
-//        m_Pitch += dy * RotateSpeed * Time::GetElapesedSec();
-//
-//        m_DragStart = glm::vec2{ xpos, ypos };
-//    }
-//}
-//
-//void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
-//{
-//    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-//    {
-//        double xpos, ypos;
-//        glfwGetCursorPos(window, &xpos, &ypos);
-//        m_DragStart.x = static_cast<float>(xpos);
-//        m_DragStart.y = static_cast<float>(ypos);
-//    }
-//}
-//
-//glm::mat4 Camera::CalculateViewMat()
-//{
-//    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, m_Up);
-//    rotation = glm::rotate(rotation, m_Pitch, glm::vec3{ 1.f,0.f,0.f });
-//
-//    m_Forward = glm::normalize(rotation[2]);
-//    m_Right = glm::normalize(glm::cross(m_Up, m_Forward));
-//
-//    return  glm::lookAt(m_Position, m_Position + m_Forward, m_Up);
-//}
-//
-//glm::mat4 Camera::CalculateProjMat()
-//{
-//    return glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
-//
-//}
+void Camera::keyEvent(int key, int scancode, int action, int mods)
+{
+    const float cameraspeed{ 0.2f };
+    if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position += m_Forward * cameraspeed;
+    }
+    if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position -= m_Forward * cameraspeed;
+    }
+    if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position += m_Right * cameraspeed;
+    }
+    if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position -= m_Right * cameraspeed;
+    }
+
+}
+
+void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
+{
+    const float RotateSpeed{ 0.0005f };
+
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+    if (state == GLFW_PRESS)
+    {
+        float dx = static_cast<float>(xpos) - m_DragStart.x;
+        m_Yaw += dx * RotateSpeed * Time::GetElapesedSec();
+        
+        float dy = static_cast<float>(ypos) - m_DragStart.y;
+        m_Pitch += dy * RotateSpeed * Time::GetElapesedSec();
+
+        m_DragStart = glm::vec2{ xpos, ypos };
+    }
+}
+
+void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    {
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        m_DragStart.x = static_cast<float>(xpos);
+        m_DragStart.y = static_cast<float>(ypos);
+    }
+}
+
+glm::mat4 Camera::CalculateViewMat()
+{
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, m_Up);
+    rotation = glm::rotate(rotation, m_Pitch, glm::vec3{ 1.f,0.f,0.f });
+
+    m_Forward = glm::normalize(rotation[2]);
+    m_Right = glm::normalize(glm::cross(m_Up, m_Forward));
+
+    return  glm::lookAt(m_Position, m_Position + m_Forward, m_Up);
+}
+
+glm::mat4 Camera::CalculateProjMat()
+{
+    return glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
+
+}
 

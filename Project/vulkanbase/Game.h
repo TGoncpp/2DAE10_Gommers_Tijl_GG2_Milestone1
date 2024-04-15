@@ -16,41 +16,41 @@
 #include "vulkanbase/Structs.h"
 
 //Abstract classes
-#include "vulkanbase/newCamera.h"
+//#include "vulkanbase/newCamera.h"
 #include "vulkanbase/Pipeline.h"
 #include "vulkanbase/Object.h"
 
 
-//class Camera final
-//{
-//public:
-//    Camera(const glm::vec3& position, float fov, float ar)
-//        :m_Position{ position }, m_AspectRatio{ ar }, m_FieldOfView{ fov } {}
-//    ~Camera() = default;
-//
-//    void keyEvent(int key, int scancode, int action, int mods);
-//    void mouseMove(GLFWwindow* window, double xpos, double ypos);
-//    void mouseEvent(GLFWwindow* window, int button, int action, int mods);
-//
-//    glm::mat4 CalculateViewMat();
-//    glm::mat4 CalculateProjMat();
-//
-//private:
-//    glm::vec3 m_Position{};
-//    glm::vec3 m_WorldPosition{};
-//    float m_FieldOfView{ 1.f };
-//    float m_AspectRatio{ 1.f };
-//    const float m_NearPlane{ 0.1f };
-//    const float m_FarPlane{ 10.f };
-//
-//    glm::vec3 m_Forward{};
-//    glm::vec3 m_Right{};
-//    glm::vec3 m_Up{ glm::vec3{ 0.f,0.f,1.f } };
-//    glm::vec2 m_DragStart{};
-//    float m_Yaw{ glm::radians(120.f)};
-//    float m_Pitch{ glm::radians(-120.f)};
-//
-//};
+class Camera final
+{
+public:
+    Camera(const glm::vec3& position, float fov, float ar)
+        :m_Position{ position }, m_AspectRatio{ ar }, m_FieldOfView{ fov } {}
+    ~Camera() = default;
+
+    void keyEvent(int key, int scancode, int action, int mods);
+    void mouseMove(GLFWwindow* window, double xpos, double ypos);
+    void mouseEvent(GLFWwindow* window, int button, int action, int mods);
+
+    glm::mat4 CalculateViewMat();
+    glm::mat4 CalculateProjMat();
+
+private:
+    glm::vec3 m_Position{};
+    glm::vec3 m_WorldPosition{};
+    float m_FieldOfView{ 1.f };
+    float m_AspectRatio{ 1.f };
+    const float m_NearPlane{ 0.1f };
+    const float m_FarPlane{ 10.f };
+
+    glm::vec3 m_Forward{};
+    glm::vec3 m_Right{};
+    glm::vec3 m_Up{ glm::vec3{ 0.f,0.f,1.f } };
+    glm::vec2 m_DragStart{};
+    float m_Yaw{ glm::radians(120.f)};
+    float m_Pitch{ glm::radians(-120.f)};
+
+};
 
 //enable validationLayers while on debug mode
 const std::vector<const char*> vValidationLayers = { "VK_LAYER_KHRONOS_validation" };
@@ -128,14 +128,19 @@ private:
     std::vector<VkDeviceMemory> m_vUniformBuffersMemory;
     std::vector<void*> m_vUniformBuffersMapped;
     VkDescriptorPool m_DescriptorPool;
+    VkDescriptorPool m_DescriptorPool2D;
     std::vector<VkDescriptorSet> m_vDescriptorSets;
+    std::vector<VkDescriptorSet> m_vDescriptorSets2D;
 
     uint32_t m_MipLvl;
     VkSampleCountFlagBits m_MsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     VkImage m_TextureImage;
+    VkImage m_TextureImag2De;
     VkDeviceMemory m_TextureImageMemory;
+    VkDeviceMemory m_TextureImageMemory2D;
     VkImageView m_TextureImageView;
+    VkImageView m_TextureImageView2D;
     VkSampler m_TextureSampler;
 
     VkImage m_DepthImage;
@@ -260,8 +265,8 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     //void createIndexBuffer();
     void createUniformBuffers();
-    void createDescriptorPool();
-    void createDescriptorSets();
+    void createDescriptorPool(VkDescriptorPool& descriptorpool);
+    void createDescriptorSets(VkDescriptorPool& descriptorpool, std::vector<VkDescriptorSet>& vDescriptorSets, VkImageView imageView);
 
     public:
     //Abstraction
@@ -280,12 +285,12 @@ private:
     void updateUniformBuffer(uint32_t currentImage);
 
     //TEXTURES
-    void createTextureImage();
+    void createTextureImage(VkImage& image, VkDeviceMemory& imageMemory, const std::string& path);
     void createImage(uint32_t width, uint32_t height, uint32_t mipLvls, VkSampleCountFlagBits numSamples,
                      VkFormat format, VkImageTiling tiling,
                      VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
                      VkImage& image, VkDeviceMemory& imageMemory);
-    void createTextureImageView();
+    void createTextureImageView(VkImageView& imageView, const VkImage& image);
     void createTextureSampler();
     void createDepthResources();//for all depth resources
     void createColorResources();// for all multisampling resources

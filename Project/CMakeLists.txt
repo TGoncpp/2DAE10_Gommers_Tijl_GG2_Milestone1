@@ -35,7 +35,7 @@ file(GLOB_RECURSE REQUIRED_FILES
 # Create the executable
 #add_executable(${PROJECT_NAME} ${SOURCES} ${GLSL_SOURCE_FILES}  "vulkanbase/Game.h" "vulkanbase/Game.cpp")
 add_executable(Vulkan 
-				"vulkanbase/newCamera.h" "vulkanbase/newCamera.cpp" 
+				#"vulkanbase/newCamera.h" "vulkanbase/newCamera.cpp" 
 				"vulkanbase/game.h" "vulkanbase/game.cpp" 
 				"vulkanbase/pipeline.h" "vulkanbase/pipeline.cpp"
 				"vulkanbase/Object.h" "vulkanbase/Object.cpp"
