@@ -3,6 +3,7 @@
 #include<algorithm>     // for clamp
 #include <limits>       //for numeric_limits
 #include "Time.h"
+#include "uniformBufferObject.h"
 
 //#include <cstdint>      // for uint32_t
 #define STB_IMAGE_IMPLEMENTATION 
@@ -116,11 +117,14 @@ void Game::initVulkan()
     createColorResources();
     createDepthResources();
     createFramebuffer();
-    createTextureImage(m_TextureImage, m_TextureImageMemory, "textures/viking_room.png");
-    createTextureImage(m_TextureImag2De, m_TextureImageMemory2D, "textures/flashy.jpg");
-    createTextureImageView(m_TextureImageView, m_TextureImage);
-    createTextureImageView(m_TextureImageView2D, m_TextureImag2De);
-    createTextureSampler();
+
+    m_TextureRoom   = std::make_unique<Texture>("textures/viking_room.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
+    m_TextureFlashy = std::make_unique<Texture>("textures/flashy.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
+    //createTextureImage(m_TextureImage, m_TextureImageMemory, "textures/viking_room.png");
+    //createTextureImage(m_TextureImag2De, m_TextureImageMemory2D, "textures/flashy.jpg");
+    //createTextureImageView(m_TextureImageView, m_TextureImage);
+    //createTextureImageView(m_TextureImageView2D, m_TextureImag2De);
+    //createTextureSampler();
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
     m_p3DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
@@ -130,10 +134,12 @@ void Game::initVulkan()
     m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
     
     createUniformBuffers();
-    createDescriptorPool(m_DescriptorPool);
-    createDescriptorPool(m_DescriptorPool2D);
-    createDescriptorSets(m_DescriptorPool, m_vDescriptorSets, m_TextureImageView);
-    createDescriptorSets(m_DescriptorPool2D, m_vDescriptorSets2D, m_TextureImageView2D);
+    m_TextureRoom->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
+    m_TextureFlashy->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
+    //createDescriptorPool(m_DescriptorPool);
+    //createDescriptorPool(m_DescriptorPool2D);
+    //createDescriptorSets(m_DescriptorPool, m_vDescriptorSets, m_TextureImageView);
+    //createDescriptorSets(m_DescriptorPool2D, m_vDescriptorSets2D, m_TextureImageView2D);
     createSyncObjects();
 }
 
@@ -153,20 +159,21 @@ void Game::cleanup()
     vkDestroyImage(m_LogicalDevice, m_ColorImage, nullptr);
     vkFreeMemory(m_LogicalDevice, m_ColorImageMemory, nullptr);
     cleanupSwapchain();
-    vkDestroySampler(m_LogicalDevice, m_TextureSampler, nullptr);
-    vkDestroyImageView(m_LogicalDevice, m_TextureImageView, nullptr);
-    vkDestroyImageView(m_LogicalDevice, m_TextureImageView2D, nullptr);
-    vkDestroyImage(m_LogicalDevice, m_TextureImag2De, nullptr);
-    vkDestroyImage(m_LogicalDevice, m_TextureImage, nullptr);
-    vkFreeMemory(m_LogicalDevice, m_TextureImageMemory, nullptr);
-    vkFreeMemory(m_LogicalDevice, m_TextureImageMemory2D, nullptr);
-
+    //vkDestroySampler(m_LogicalDevice, m_TextureSampler, nullptr);
+    //vkDestroyImageView(m_LogicalDevice, m_TextureImageView, nullptr);
+    //vkDestroyImageView(m_LogicalDevice, m_TextureImageView2D, nullptr);
+    //vkDestroyImage(m_LogicalDevice, m_TextureImag2De, nullptr);
+    //vkDestroyImage(m_LogicalDevice, m_TextureImage, nullptr);
+    //vkFreeMemory(m_LogicalDevice, m_TextureImageMemory, nullptr);
+    //vkFreeMemory(m_LogicalDevice, m_TextureImageMemory2D, nullptr);
+    m_TextureFlashy->Destroy();
+    m_TextureRoom->Destroy();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(m_LogicalDevice, m_vUniformBuffers[i], nullptr);
         vkFreeMemory(m_LogicalDevice, m_vUniformBuffersMemory[i], nullptr);
     }
-    vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
-    vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool2D, nullptr);
+    //vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
+    //vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool2D, nullptr);
     vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
     
     m_p3DObject->Destroy(m_LogicalDevice);
@@ -868,7 +875,8 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //3D PIPELINE
 
     //Binding off vertexbuffer
-    pipeline->Record(commandBuffer, m_vDescriptorSets[m_CurrentFrame]);
+    //pipeline->Record(commandBuffer, m_vDescriptorSets[m_CurrentFrame]);
+    pipeline->Record(commandBuffer, m_TextureRoom->GetDescriptorSets()[m_CurrentFrame]);
    
     //Room
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.f, 0.f));
@@ -889,7 +897,8 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //----------------------------------------
    //2D PIPELINE
 
-    m_p2DPipeline->Record(commandBuffer, m_vDescriptorSets2D[m_CurrentFrame]);
+    //m_p2DPipeline->Record(commandBuffer, m_vDescriptorSets2D[m_CurrentFrame]);
+    m_p2DPipeline->Record(commandBuffer, m_TextureFlashy->GetDescriptorSets()[m_CurrentFrame]);
 
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, 0.f));
     transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
@@ -1053,81 +1062,81 @@ void Game::createUniformBuffers()
 
 }
 
-void Game::createDescriptorPool(VkDescriptorPool& descriptorpool)
-{
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
- 
-    poolSizes[1].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+//void Game::createDescriptorPool(VkDescriptorPool& descriptorpool)
+//{
+//    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+//    poolSizes[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+//    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+// 
+//    poolSizes[1].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+//    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+//
+//    VkDescriptorPoolCreateInfo poolInfo{};
+//    poolInfo.sType           = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+//    poolInfo.poolSizeCount   = static_cast<uint32_t>(poolSizes.size());
+//    poolInfo.pPoolSizes      = poolSizes.data();
+//    poolInfo.maxSets         = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+//    poolInfo.flags           = 0;
+//
+//    if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, &descriptorpool) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error{ "failed to create decriptor pool" };
+//    }
+//
+//}
 
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType           = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount   = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes      = poolSizes.data();
-    poolInfo.maxSets         = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    poolInfo.flags           = 0;
-
-    if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, &descriptorpool) != VK_SUCCESS)
-    {
-        throw std::runtime_error{ "failed to create decriptor pool" };
-    }
-
-}
-
-void Game::createDescriptorSets(VkDescriptorPool& descriptorpool, std::vector<VkDescriptorSet>& vDescriptorSets, VkImageView imageView)
-{
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool     = descriptorpool;                                 //get fixed after first init
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) ;
-    allocInfo.pSetLayouts        = layouts.data();
-
-    vDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, vDescriptorSets.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error{ "failed to allocate discriptorSets" };
-    }
-    //will be destroyed automaticly when descriptorpool is destroyed
-
-    for (size_t i{}; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer    = m_vUniformBuffers[i];
-        bufferInfo.offset    = 0;
-        bufferInfo.range     = sizeof(UniformBufferObject);
-        
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView   = imageView;
-        imageInfo.sampler     = m_TextureSampler;
-
-        //here they get combined
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-        descriptorWrites[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet          = vDescriptorSets[i];
-        descriptorWrites[0].dstBinding      = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo     = &bufferInfo;
-        
-        descriptorWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet          = vDescriptorSets[i];
-        descriptorWrites[1].dstBinding      = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo      = &imageInfo;
-        
-
-        vkUpdateDescriptorSets(m_LogicalDevice, 
-            static_cast<uint32_t>(descriptorWrites.size()), 
-            descriptorWrites.data(), 0, nullptr);
-    }
-}
+//void Game::createDescriptorSets(VkDescriptorPool& descriptorpool, std::vector<VkDescriptorSet>& vDescriptorSets, VkImageView imageView)
+//{
+//    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
+//    VkDescriptorSetAllocateInfo allocInfo{};
+//    allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+//    allocInfo.descriptorPool     = descriptorpool;                                 //get fixed after first init
+//    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) ;
+//    allocInfo.pSetLayouts        = layouts.data();
+//
+//    vDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+//    if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, vDescriptorSets.data()) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error{ "failed to allocate discriptorSets" };
+//    }
+//    //will be destroyed automaticly when descriptorpool is destroyed
+//
+//    for (size_t i{}; i < MAX_FRAMES_IN_FLIGHT; ++i)
+//    {
+//        VkDescriptorBufferInfo bufferInfo{};
+//        bufferInfo.buffer    = m_vUniformBuffers[i];
+//        bufferInfo.offset    = 0;
+//        bufferInfo.range     = sizeof(UniformBufferObject);
+//        
+//        VkDescriptorImageInfo imageInfo{};
+//        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+//        imageInfo.imageView   = imageView;
+//        imageInfo.sampler     = m_TextureSampler;
+//
+//        //here they get combined
+//        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+//        descriptorWrites[0].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+//        descriptorWrites[0].dstSet          = vDescriptorSets[i];
+//        descriptorWrites[0].dstBinding      = 0;
+//        descriptorWrites[0].dstArrayElement = 0;
+//        descriptorWrites[0].descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+//        descriptorWrites[0].descriptorCount = 1;
+//        descriptorWrites[0].pBufferInfo     = &bufferInfo;
+//        
+//        descriptorWrites[1].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+//        descriptorWrites[1].dstSet          = vDescriptorSets[i];
+//        descriptorWrites[1].dstBinding      = 1;
+//        descriptorWrites[1].dstArrayElement = 0;
+//        descriptorWrites[1].descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+//        descriptorWrites[1].descriptorCount = 1;
+//        descriptorWrites[1].pImageInfo      = &imageInfo;
+//        
+//
+//        vkUpdateDescriptorSets(m_LogicalDevice, 
+//            static_cast<uint32_t>(descriptorWrites.size()), 
+//            descriptorWrites.data(), 0, nullptr);
+//    }
+//}
 
 void Game::createBuffer(VkDeviceSize bufferSize, 
                     VkBufferUsageFlags flags, 
@@ -1219,50 +1228,50 @@ void Game::updateUniformBuffer(uint32_t currentImage)
     memcpy(m_vUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-void Game::createTextureImage(VkImage& image, VkDeviceMemory& imageMemory, const std::string& path)
-{
-    //load image
-    int texWidth{}, textHeight{}, textChannels{};
-    stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &textHeight, &textChannels, STBI_rgb_alpha);
-    VkDeviceSize imageSize = texWidth * textHeight * 4;
-
-    m_MipLvl = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, textHeight)))) + 1;
-
-    if (!pixels)
-    {
-        throw std::runtime_error{ "failed to load texture image" };
-    }
-
-    //create staging buffer to load in host memory
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingbufferMemory;
-    createBuffer(imageSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-        stagingBuffer, stagingbufferMemory);
-
-    void* data;
-    vkMapMemory(m_LogicalDevice, stagingbufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(m_LogicalDevice, stagingbufferMemory);
-    
-    stbi_image_free(pixels);
-
-    //create image to transfer to and bind
-    createImage(texWidth, textHeight, m_MipLvl, VK_SAMPLE_COUNT_1_BIT,
-        VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        image, imageMemory);
-
-    transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLvl);
-    copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(textHeight));
-    //transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_MipLvl);
-    generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, textHeight, m_MipLvl);
-
-    vkDestroyBuffer(m_LogicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(m_LogicalDevice, stagingbufferMemory, nullptr);
-}
+//void Game::createTextureImage(VkImage& image, VkDeviceMemory& imageMemory, const std::string& path)
+//{
+//    //load image
+//    int texWidth{}, textHeight{}, textChannels{};
+//    stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &textHeight, &textChannels, STBI_rgb_alpha);
+//    VkDeviceSize imageSize = texWidth * textHeight * 4;
+//
+//    m_MipLvl = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, textHeight)))) + 1;
+//
+//    if (!pixels)
+//    {
+//        throw std::runtime_error{ "failed to load texture image" };
+//    }
+//
+//    //create staging buffer to load in host memory
+//    VkBuffer stagingBuffer;
+//    VkDeviceMemory stagingbufferMemory;
+//    createBuffer(imageSize,
+//        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+//        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+//        stagingBuffer, stagingbufferMemory);
+//
+//    void* data;
+//    vkMapMemory(m_LogicalDevice, stagingbufferMemory, 0, imageSize, 0, &data);
+//    memcpy(data, pixels, static_cast<size_t>(imageSize));
+//    vkUnmapMemory(m_LogicalDevice, stagingbufferMemory);
+//    
+//    stbi_image_free(pixels);
+//
+//    //create image to transfer to and bind
+//    createImage(texWidth, textHeight, m_MipLvl, VK_SAMPLE_COUNT_1_BIT,
+//        VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+//        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+//        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+//        image, imageMemory);
+//
+//    transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_MipLvl);
+//    copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(textHeight));
+//    //transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_MipLvl);
+//    generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, textHeight, m_MipLvl);
+//
+//    vkDestroyBuffer(m_LogicalDevice, stagingBuffer, nullptr);
+//    vkFreeMemory(m_LogicalDevice, stagingbufferMemory, nullptr);
+//}
 
 void Game::createImage(uint32_t width, uint32_t height, uint32_t mipLvls, VkSampleCountFlagBits numSamples,
     VkFormat format, VkImageTiling tiling, 
@@ -1308,10 +1317,10 @@ void Game::createImage(uint32_t width, uint32_t height, uint32_t mipLvls, VkSamp
 
 }
 
-void Game::createTextureImageView(VkImageView& imageView, const VkImage& image)
-{
-    imageView = createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLvl);
-}
+//void Game::createTextureImageView(VkImageView& imageView, const VkImage& image)
+//{
+//    imageView = createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_MipLvl);
+//}
 
 void Game::createColorResources()
 {
@@ -1323,41 +1332,41 @@ void Game::createColorResources()
     m_ColorImageView = createImageView(m_ColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
-void Game::createTextureSampler()
-{
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
-    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-
-    //if you dont want to use anisotropic behaviour
-    //samplerInfo.anisotropyEnable = VK_FALSE;
-    //samplerInfo.maxAnisotropy = 1.0f;
-
-
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE; //-> false returns 0-1| true returns 0-width, 0-height
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp     = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.mipLodBias    = 0.0f;
-    samplerInfo.minLod        = static_cast<float>(m_MipLvl/4.f);
-    samplerInfo.maxLod        = static_cast<float>(m_MipLvl);
-
-    if (vkCreateSampler(m_LogicalDevice, &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
-    {
-        throw std::runtime_error{ "failed to create texture sampler" };
-    }
-
-}
+//void Game::createTextureSampler()
+//{
+//    VkSamplerCreateInfo samplerInfo{};
+//    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+//    samplerInfo.magFilter = VK_FILTER_LINEAR;
+//    samplerInfo.minFilter = VK_FILTER_LINEAR;
+//    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//    samplerInfo.anisotropyEnable = VK_TRUE;
+//
+//    VkPhysicalDeviceProperties properties{};
+//    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
+//    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+//
+//    //if you dont want to use anisotropic behaviour
+//    //samplerInfo.anisotropyEnable = VK_FALSE;
+//    //samplerInfo.maxAnisotropy = 1.0f;
+//
+//
+//    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+//    samplerInfo.unnormalizedCoordinates = VK_FALSE; //-> false returns 0-1| true returns 0-width, 0-height
+//    samplerInfo.compareEnable = VK_FALSE;
+//    samplerInfo.compareOp     = VK_COMPARE_OP_ALWAYS;
+//    samplerInfo.mipmapMode    = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+//    samplerInfo.mipLodBias    = 0.0f;
+//    samplerInfo.minLod        = static_cast<float>(m_MipLvl/4.f);
+//    samplerInfo.maxLod        = static_cast<float>(m_MipLvl);
+//
+//    if (vkCreateSampler(m_LogicalDevice, &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error{ "failed to create texture sampler" };
+//    }
+//
+//}
 
 void Game::createDepthResources()
 {

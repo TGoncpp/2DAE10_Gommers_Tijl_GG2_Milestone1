@@ -44,7 +44,7 @@ add_executable(Vulkan
 				"vulkanbase/Time.h" "vulkanbase/Time.cpp" 
                 "vulkanbase/Texture.h" "vulkanbase/Texture.cpp"
 				"main.cpp" 
-)
+ "vulkanbase/UniformBufferObject.h")
 add_dependencies(Vulkan Shaders)
 #add_dependencies(TEXTURES "models/vehicle.obj" "models/room.obj" "models/bunny.obj" "textures/viking_room.png" )
 # Link libraries

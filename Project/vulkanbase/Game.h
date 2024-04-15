@@ -115,10 +115,7 @@ private:
    VkCommandPool m_CommandPool;
   
     //const std::string m_ModelPath{ "models/room.obj" };
-    const std::string m_TexturePath{ "textures/viking_room.png" };
-    const std::string m_TexturePath2{ "textures/dae.png" };
-
-
+   
     std::vector < VkSemaphore> m_vImageAvailableSemaphores;
     std::vector < VkSemaphore> m_vRenderFinishedAvailableSemaphores;
     std::vector < VkFence> m_vInFlightFences;
@@ -130,19 +127,19 @@ private:
     std::vector<void*> m_vUniformBuffersMapped;
     VkDescriptorPool m_DescriptorPool;
     VkDescriptorPool m_DescriptorPool2D;
-    std::vector<VkDescriptorSet> m_vDescriptorSets;
-    std::vector<VkDescriptorSet> m_vDescriptorSets2D;
+    //std::vector<VkDescriptorSet> m_vDescriptorSets;
+    //std::vector<VkDescriptorSet> m_vDescriptorSets2D;
 
-    uint32_t m_MipLvl;
+    //uint32_t m_MipLvl;
     VkSampleCountFlagBits m_MsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    VkImage m_TextureImage;
-    VkImage m_TextureImag2De;
-    VkDeviceMemory m_TextureImageMemory;
-    VkDeviceMemory m_TextureImageMemory2D;
-    VkImageView m_TextureImageView;
-    VkImageView m_TextureImageView2D;
-    VkSampler m_TextureSampler;
+    //VkImage m_TextureImage;
+    //VkImage m_TextureImag2De;
+    //VkDeviceMemory m_TextureImageMemory;
+    //VkDeviceMemory m_TextureImageMemory2D;
+    //VkImageView m_TextureImageView;
+    //VkImageView m_TextureImageView2D;
+    //VkSampler m_TextureSampler;
 
     VkImage m_DepthImage;
     VkDeviceMemory m_DepthImageMemory;
@@ -269,8 +266,8 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     //void createIndexBuffer();
     void createUniformBuffers();
-    void createDescriptorPool(VkDescriptorPool& descriptorpool);
-    void createDescriptorSets(VkDescriptorPool& descriptorpool, std::vector<VkDescriptorSet>& vDescriptorSets, VkImageView imageView);
+    //void createDescriptorPool(VkDescriptorPool& descriptorpool);
+    //void createDescriptorSets(VkDescriptorPool& descriptorpool, std::vector<VkDescriptorSet>& vDescriptorSets, VkImageView imageView);
 
     public:
     //Abstraction
@@ -295,7 +292,7 @@ private:
                      VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
                      VkImage& image, VkDeviceMemory& imageMemory);
     void createTextureImageView(VkImageView& imageView, const VkImage& image);
-    void createTextureSampler();
+    //void createTextureSampler();
     void createDepthResources();//for all depth resources
     void createColorResources();// for all multisampling resources
 
