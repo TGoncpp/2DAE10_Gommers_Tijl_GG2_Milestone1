@@ -35,7 +35,6 @@ file(GLOB_RECURSE REQUIRED_FILES
 # Create the executable
 #add_executable(${PROJECT_NAME} ${SOURCES} ${GLSL_SOURCE_FILES}  "vulkanbase/Game.h" "vulkanbase/Game.cpp")
 add_executable(Vulkan 
-				#"vulkanbase/newCamera.h" "vulkanbase/newCamera.cpp" 
 				"vulkanbase/game.h" "vulkanbase/game.cpp" 
 				"vulkanbase/pipeline.h" "vulkanbase/pipeline.cpp"
 				"vulkanbase/Object.h" "vulkanbase/Object.cpp"
@@ -43,10 +42,11 @@ add_executable(Vulkan
 				"vulkanbase/structs.h"
 				"vulkanbase/Time.h" "vulkanbase/Time.cpp" 
                 "vulkanbase/Texture.h" "vulkanbase/Texture.cpp"
-				"main.cpp" 
- "vulkanbase/UniformBufferObject.h")
+                "vulkanbase/newCamera.h" "vulkanbase/newCamera.cpp"
+                "vulkanbase/UniformBufferObject.h"
+				"main.cpp" )
 add_dependencies(Vulkan Shaders)
-#add_dependencies(TEXTURES "models/vehicle.obj" "models/room.obj" "models/bunny.obj" "textures/viking_room.png" )
+
 # Link libraries
 target_include_directories(Vulkan PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(Vulkan PRIVATE ${Vulkan_LIBRARIES} glfw)
@@ -64,7 +64,3 @@ add_custom_command(
     $<TARGET_FILE_DIR:Vulkan>/textures)
 
 
-#add_custom_command(
-#    TARGET Assignment PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCES_DIR} ${RESOURCES_BINARY_DIR}
-#)
