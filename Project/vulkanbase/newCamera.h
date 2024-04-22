@@ -21,6 +21,7 @@ public:
 	float GetNearPlane()const { return m_NearPlane; };
 	float GetFarPlane()const { return m_FarPlane; };
 	glm::mat4 GetProjMat()const { return m_ProjMat; };
+	glm::mat4 GetViewMat()const { return m_ViewMat; };
 
 	void CalculateViewMat();
 	void CalculateProjMat();
@@ -37,9 +38,8 @@ private:
 	glm::mat4 m_ProjMat{};
 	glm::vec3 m_Forward{};
 	glm::vec3 m_Right{};
-	glm::vec3 m_Up{};
+	glm::vec3 m_Up{ glm::vec3{ 0.f,0.f,1.f } };
 	glm::vec2 m_DragStart{};
-	float m_Yaw{};
-	float m_Pitch{};
-
+	float m_Yaw{ glm::radians(120.f) };
+	float m_Pitch{ glm::radians(-120.f) };
 };

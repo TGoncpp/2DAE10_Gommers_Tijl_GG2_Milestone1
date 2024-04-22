@@ -52,11 +52,11 @@ target_include_directories(Vulkan PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(Vulkan PRIVATE ${Vulkan_LIBRARIES} glfw)
 
 add_custom_target(copy_resources ALL)
-#add_custom_command(
-#    TARGET copy_resources PRE_BUILD
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory
-#    ${CMAKE_SOURCE_DIR}/project/models
-#    $<TARGET_FILE_DIR:Vulkan>/models)
+add_custom_command(
+    TARGET copy_resources PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/project/models
+    $<TARGET_FILE_DIR:Vulkan>/models)
 add_custom_command(    TARGET copy_resources PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
    ${CMAKE_SOURCE_DIR}/project/textures

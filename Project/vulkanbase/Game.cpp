@@ -27,6 +27,15 @@ void Game::run()
 //Main functions
 //------------------------------------------------------
 
+void Game::SetRandomScale(std::vector<float>& v, int amount, float maxScale)
+{
+    v.resize(amount);
+    for (auto& e : v)
+    {
+        e = (rand() % (int(maxScale) * 10)) / 10.f;
+    }
+}
+
 void Game::FillOvalResources(const glm::vec2& pos, float radius, int numOfTriangles, std::vector<Vertex2D>& vertices, std::vector<uint32_t>& indices)
 {
     vertices.clear();
@@ -101,8 +110,8 @@ void Game::initVulkan()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    m_p3DObject = std::make_unique< SceneObject>("models/vehicle.obj", "", true);
-    m_p3DObject2 = std::make_unique< SceneObject>("models/room.obj", "textures/viking_room.png", true);
+    m_p3DObject = std::make_unique< SceneObject>("models/vehicle.obj", true);
+    m_p3DObject2 = std::make_unique< SceneObject>("models/room.obj", true);
     m_p3DPipeline = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shader.frag.spv", true);
     m_p3DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
@@ -113,15 +122,16 @@ void Game::initVulkan()
     m_p2DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
     m_pCamera = std::make_unique< Camera>(glm::vec3{ 3.0f, 2.0f, 2.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
-    m_pCamera->CalculateProjMat(); //Function that acts weirldly
+    //m_pCamera->CalculateProjMat(); //Function that acts weirldly
+    //m_pCamera->CalculateViewMat(); //Function that acts weirldly
     createCommandPool();
     createColorResources();
     createDepthResources();
     createFramebuffer();
 
-    m_TextureRoom   = std::make_unique<Texture>("textures/viking_room.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
-    m_TextureFlashy = std::make_unique<Texture>("textures/flashy.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
-    m_TexturePlane = std::make_unique<Texture>("textures/vehicle_diffuse.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT);
+    m_vTextures.push_back( std::make_unique<Texture>("textures/viking_room.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
+    m_vTextures.push_back(std::make_unique<Texture>("textures/flashy.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
+    m_vTextures.push_back(std::make_unique<Texture>("textures/vehicle_diffuse.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
@@ -132,13 +142,13 @@ void Game::initVulkan()
     m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
     
     createUniformBuffers();
-    m_TextureRoom->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
-    m_TextureFlashy->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
-    m_TexturePlane->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
-   
+    for (auto& discriptorSet : m_vTextures)
+    {
+        discriptorSet->createDiscripterSet(m_DescriptorSetLayout, m_vUniformBuffers);
+    }
+
+    SetRandomScale(m_vScales, 100 * 100, 2.f);
     createSyncObjects();
-
-
 }
 
 void Game::mainLoop()
@@ -158,9 +168,10 @@ void Game::cleanup()
     vkFreeMemory(m_LogicalDevice, m_ColorImageMemory, nullptr);
     cleanupSwapchain();
    
-    m_TextureFlashy->Destroy();
-    m_TextureRoom->Destroy();
-    m_TexturePlane->Destroy();
+    for (auto& discriptorSet : m_vTextures)
+    {
+        discriptorSet->Destroy();
+    }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(m_LogicalDevice, m_vUniformBuffers[i], nullptr);
         vkFreeMemory(m_LogicalDevice, m_vUniformBuffersMemory[i], nullptr);
@@ -866,21 +877,38 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //----------------------------------------
     //3D PIPELINE
 
-    //Binding off vertexbuffer
-    //pipeline->Record(commandBuffer, m_vDescriptorSets[m_CurrentFrame]);
-    pipeline->Record(commandBuffer, m_TextureRoom->GetDescriptorSets()[m_CurrentFrame]);
-   
     //Room
+    pipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
+   
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.f, 0.f));
-    //transform = glm::translate(transform, m_pCamera->GetPosition());
     transform = glm::rotate(transform, /*Time::GetElapesedSec() **/ glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
     vkCmdPushConstants(commandBuffer, pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
     object->Record(commandBuffer);
+    
+    constexpr int x = 100;
+    constexpr int w = 100;
 
+    // Rooms
+    for (int y{}; y < x; ++y)
+    for (int i{}; i < w; ++i)
+    { 
+        //float rot = rand()%360 ;
+        int t = ((y + i) % 2 == 0) ? 2 : 1;
+        t = ((y * i) % 3 == 0) ? 0 : 1;
+        pipeline->Record(commandBuffer, m_vTextures[t]->GetDescriptorSets()[m_CurrentFrame]);
+
+        transform = glm::translate(glm::mat4(1.0f), glm::vec3(i * 1.5f, y * 1.5f, 0.f));
+        transform = glm::rotate(transform, glm::radians(i*y*2.f), glm::vec3(i * 0.f, 0.f, 1.f));
+        transform = glm::scale(transform, glm::vec3(m_vScales[y*i+i], m_vScales[y * i + i], m_vScales[y * i + i]));
+        vkCmdPushConstants(commandBuffer, pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+        object->Record(commandBuffer);
+    }
     //vehicle 
-    pipeline->Record(commandBuffer, m_TexturePlane->GetDescriptorSets()[m_CurrentFrame]);
+    pipeline->Record(commandBuffer, m_vTextures[2]->GetDescriptorSets()[m_CurrentFrame]);
 
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, -1.f, 0.f));
+    transform = glm::translate(glm::mat4(1.0f), glm::vec3(5.f, 5.f, 2.f));
+    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0.f, 1.0f));
+    transform = glm::translate(transform, glm::vec3(0.f, -5.f, 2.f));
     transform = glm::scale(transform, glm::vec3(0.025f));
     transform = glm::rotate(transform, glm::radians(90.f), glm::vec3(1.f, 0, 0));
     transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
@@ -891,8 +919,7 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //----------------------------------------
    //2D PIPELINE
 
-    //m_p2DPipeline->Record(commandBuffer, m_vDescriptorSets2D[m_CurrentFrame]);
-    m_p2DPipeline->Record(commandBuffer, m_TextureFlashy->GetDescriptorSets()[m_CurrentFrame]);
+    m_p2DPipeline->Record(commandBuffer, m_vTextures[2]->GetDescriptorSets()[m_CurrentFrame]);
 
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, 0.f));
     transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
@@ -903,8 +930,6 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 1, .0f));
     vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
     m_p2DOvalObject->Record(commandBuffer);
-
-
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1135,10 +1160,10 @@ void Game::updateUniformBuffer(uint32_t currentImage)
 {
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), /*Time::GetElapesedSec() **/ glm::radians(m_RotationSpeed), glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.view  = m_pCamera->CalculateViewMat();
-    //ubo.proj  = m_pCamera->CalculateProjMat();
-    m_pCamera->CalculateViewMat();
-    m_pCamera-> CalculateProjMat();
+    //ubo.view  = m_pCamera->GetViewMat();
+    //ubo.proj  = m_pCamera->GetProjMat();
+    ubo.view = m_pCamera->CalculateViewMat();
+    ubo.proj = m_pCamera-> CalculateProjMat();
 
     ubo.proj[1][1] *= -1; // flip the y-axis. now it wil be from bottom(0) to top(1)
 
@@ -1302,7 +1327,6 @@ void Game::generateMipmaps(VkImage image, VkFormat format, int32_t texWidth, int
     {
         throw std::runtime_error("texture image format does not support linear blitting!");
     }
-    //--
     
     VkImageMemoryBarrier barrier{};
     barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1512,70 +1536,70 @@ VkSampleCountFlagBits Game::getMaxUsableSampleCount()
 //------------------------------------------------------------
 //Camera
 //-----------------------------------------------------------
-//void Camera::keyEvent(int key, int scancode, int action, int mods)
-//{
-//    const float cameraspeed{ 0.2f };
-//    if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position += m_Forward * cameraspeed;
-//    }
-//    if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position -= m_Forward * cameraspeed;
-//    }
-//    if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position += m_Right * cameraspeed;
-//    }
-//    if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
-//    {
-//        m_Position -= m_Right * cameraspeed;
-//    }
-//
-//}
-//
-//void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
-//{
-//    const float RotateSpeed{ 0.0005f };
-//
-//    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
-//    if (state == GLFW_PRESS)
-//    {
-//        float dx = static_cast<float>(xpos) - m_DragStart.x;
-//        m_Yaw += dx * RotateSpeed * Time::GetElapesedSec();
-//        
-//        float dy = static_cast<float>(ypos) - m_DragStart.y;
-//        m_Pitch += dy * RotateSpeed * Time::GetElapesedSec();
-//
-//        m_DragStart = glm::vec2{ xpos, ypos };
-//    }
-//}
-//
-//void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
-//{
-//    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-//    {
-//        double xpos, ypos;
-//        glfwGetCursorPos(window, &xpos, &ypos);
-//        m_DragStart.x = static_cast<float>(xpos);
-//        m_DragStart.y = static_cast<float>(ypos);
-//    }
-//}
-//
-//glm::mat4 Camera::CalculateViewMat()
-//{
-//    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, m_Up);
-//    rotation = glm::rotate(rotation, m_Pitch, glm::vec3{ 1.f,0.f,0.f });
-//
-//    m_Forward = glm::normalize(rotation[2]);
-//    m_Right = glm::normalize(glm::cross(m_Up, m_Forward));
-//
-//    return  glm::lookAt(m_Position, m_Position + m_Forward, m_Up);
-//}
-//
-//glm::mat4 Camera::CalculateProjMat()
-//{
-//    return glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
-//
-//}
+void Camera::keyEvent(int key, int scancode, int action, int mods)
+{
+    const float cameraspeed{ 0.2f };
+    if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position += m_Forward * cameraspeed;
+    }
+    if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position -= m_Forward * cameraspeed;
+    }
+    if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position += m_Right * cameraspeed;
+    }
+    if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS))
+    {
+        m_Position -= m_Right * cameraspeed;
+    }
+
+}
+
+void Camera::mouseMove(GLFWwindow* window, double xpos, double ypos)
+{
+    const float RotateSpeed{ 0.0005f };
+
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+    if (state == GLFW_PRESS)
+    {
+        float dx = static_cast<float>(xpos) - m_DragStart.x;
+        m_Yaw += dx * RotateSpeed * Time::GetElapesedSec();
+        
+        float dy = static_cast<float>(ypos) - m_DragStart.y;
+        m_Pitch += dy * RotateSpeed * Time::GetElapesedSec();
+
+        m_DragStart = glm::vec2{ xpos, ypos };
+    }
+}
+
+void Camera::mouseEvent(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    {
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        m_DragStart.x = static_cast<float>(xpos);
+        m_DragStart.y = static_cast<float>(ypos);
+    }
+}
+
+glm::mat4 Camera::CalculateViewMat()
+{
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.f), m_Yaw, m_Up);
+    rotation = glm::rotate(rotation, m_Pitch, glm::vec3{ 1.f,0.f,0.f });
+
+    m_Forward = glm::normalize(rotation[2]);
+    m_Right = glm::normalize(glm::cross(m_Up, m_Forward));
+
+    return  glm::lookAt(m_Position, m_Position + m_Forward, m_Up);
+}
+
+glm::mat4 Camera::CalculateProjMat()
+{
+    return glm::perspective(m_FieldOfView, m_AspectRatio, m_NearPlane, m_FarPlane);
+
+}
 

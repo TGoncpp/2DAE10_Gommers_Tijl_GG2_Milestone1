@@ -9,8 +9,8 @@ class Pipeline;
 class SceneObject
 {
 public:
-    SceneObject(const std::string& modelPath, const std::string& texturePath, bool isColored)
-        : m_ModelPath{ modelPath }, m_TexturePath{ texturePath }, m_IsCollored{ isColored }, m_Is3D{ true } {};
+    SceneObject(const std::string& modelPath, bool isColored)
+        : m_ModelPath{ modelPath }, m_IsCollored{ isColored }, m_Is3D{ true } {};
     SceneObject(const std::vector<Vertex2D>& vVertex, const std::vector<uint32_t>& vIndices)
         : m_vVertices2D{ vVertex }, m_vIndices{ vIndices }, m_Is3D{ false } {};
 
@@ -36,7 +36,6 @@ private:
     VkBuffer m_IndexBuffer;
     VkDeviceMemory m_IndexBufferMemory;
     std::string m_ModelPath{ "" };
-    std::string m_TexturePath;
 
 
     //init functions

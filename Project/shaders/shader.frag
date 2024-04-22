@@ -20,5 +20,4 @@ void main() {
     // Output color
     outColor =  vec4(diffuse,1.0);
     //outColor = vec4(fragColor, 1.0);
-
 }
