@@ -41,6 +41,11 @@ void SceneObject::Destroy(VkDevice& logicDevice)
 {
     vkDestroyBuffer(logicDevice, m_IndexBuffer, nullptr);
     vkFreeMemory(logicDevice, m_IndexBufferMemory, nullptr);
+    if (m_IsInstanceRendering)
+    {
+        vkDestroyBuffer(logicDevice, m_InstanceBuffer, nullptr);
+        vkFreeMemory(logicDevice, m_InstanceBufferMemory, nullptr);
+    }
     vkDestroyBuffer(logicDevice, m_VertexBuffer, nullptr);
     vkFreeMemory(logicDevice, m_VertexBufferMemory, nullptr);
    
