@@ -10,7 +10,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE //turns the default value range from -1->1 to 0->1
 #include <stb-master/stb-master/stb_image.h>
 #include <glm-1.0.0/glm/gtc/matrix_transform.hpp>
-
+ 
+#include "instanceStruct.h"
 
 //#include <fstream>
 //#include <filesystem>
@@ -134,12 +135,12 @@ void Game::initVulkan()
     m_vTextures.push_back(std::make_unique<Texture>("textures/vehicle_diffuse.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     
     createCommandBuffers(m_vCommandBuffers);
-    createCommandBuffers(m_vCommandBuffers2D);
-    m_p3DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
-    m_p3DObject2->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
+    //createCommandBuffers(m_vCommandBuffers2D);
+    m_p3DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
+    m_p3DObject2->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, true);
 
-    m_p2DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
-    m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue);
+    m_p2DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
+    m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
     
     createUniformBuffers();
     for (auto& discriptorSet : m_vTextures)
@@ -240,17 +241,7 @@ void Game::createInstance()
     else
          createInfo.enabledLayerCount         = 0;
 
-    //For avoiding the VK_ERROR_INCOMPATIBLE_DRIVER (can happen on mac i guess)
-    //std::vector<const char*> requiredExtensions;
-    //for (uint32_t i = 0; i < glfwExtentionCount; ++i)
-    //{
-    //    requiredExtensions.emplace_back(glfwExtensions[i]);
-    //}
-    //requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-    //createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-    //createInfo.ppEnabledExtensionNames = requiredExtensions.data();
-    //createInfo.enabledExtensionCount = (uint32_t)requiredExtensions.size();
-
+    
     auto extensions = getRequiredExtensions();
     createInfo.ppEnabledExtensionNames = extensions.data();
     createInfo.enabledExtensionCount   = (uint32_t)extensions.size();
@@ -743,11 +734,11 @@ void Game::createRenderPass()
     std::array<VkAttachmentDescription, 3> attachments = 
     { collorAttachment, depthAttachment, collorAttachmentResolve };
     VkRenderPassCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    createInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    createInfo.pAttachments = attachments.data();
-    createInfo.subpassCount = 1;
-    createInfo.pSubpasses = &subPass;
+    createInfo.pAttachments    = attachments.data();
+    createInfo.subpassCount    = 1;
+    createInfo.pSubpasses      = &subPass;
 
     //added for improving synchronic behaviour
     VkSubpassDependency dependency{};
@@ -819,8 +810,8 @@ void Game::createCommandPool()
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_PhysicalDevice);
 
     VkCommandPoolCreateInfo CommandPoolInfo{};
-    CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    CommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    CommandPoolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    CommandPoolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     CommandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
     if (vkCreateCommandPool(m_LogicalDevice, &CommandPoolInfo, nullptr, &m_CommandPool) != VK_SUCCESS)
@@ -846,7 +837,7 @@ void Game::createCommandBuffers(std::vector<VkCommandBuffer>& commandBuffers)
 
 }
 
-void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, Pipeline* pipeline, SceneObject* object)
+void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -877,59 +868,31 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //----------------------------------------
     //3D PIPELINE
 
-    //Room
-    pipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
+   //Room
+   m_p3DPipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
    
-    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.f, 0.f));
-    transform = glm::rotate(transform, /*Time::GetElapesedSec() **/ glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
-    vkCmdPushConstants(commandBuffer, pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-    object->Record(commandBuffer);
+   glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.f, 0.f));
+   //transform = glm::rotate(transform, /*Time::GetElapesedSec() **/ glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
+   vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+   m_p3DObject2->Record(commandBuffer);
     
-    constexpr int x = 100;
-    constexpr int w = 100;
-
-    // Rooms
-    for (int y{}; y < x; ++y)
-    for (int i{}; i < w; ++i)
-    { 
-        //float rot = rand()%360 ;
-        int t = ((y + i) % 2 == 0) ? 2 : 1;
-        t = ((y * i) % 3 == 0) ? 0 : 1;
-        pipeline->Record(commandBuffer, m_vTextures[t]->GetDescriptorSets()[m_CurrentFrame]);
-
-        transform = glm::translate(glm::mat4(1.0f), glm::vec3(i * 1.5f, y * 1.5f, 0.f));
-        transform = glm::rotate(transform, glm::radians(i*y*2.f), glm::vec3(i * 0.f, 0.f, 1.f));
-        transform = glm::scale(transform, glm::vec3(m_vScales[y*i+i], m_vScales[y * i + i], m_vScales[y * i + i]));
-        vkCmdPushConstants(commandBuffer, pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-        object->Record(commandBuffer);
-    }
-    //vehicle 
-    pipeline->Record(commandBuffer, m_vTextures[2]->GetDescriptorSets()[m_CurrentFrame]);
-
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(5.f, 5.f, 2.f));
-    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0.f, 1.0f));
-    transform = glm::translate(transform, glm::vec3(0.f, -5.f, 2.f));
-    transform = glm::scale(transform, glm::vec3(0.025f));
-    transform = glm::rotate(transform, glm::radians(90.f), glm::vec3(1.f, 0, 0));
-    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
-    vkCmdPushConstants(commandBuffer, pipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-    m_p3DObject->Record(commandBuffer);
-
-
-    //----------------------------------------
-   //2D PIPELINE
-
-    m_p2DPipeline->Record(commandBuffer, m_vTextures[2]->GetDescriptorSets()[m_CurrentFrame]);
-
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, 0.f));
-    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
-    vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-    m_p2DObject->Record(commandBuffer);
     
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.f, 0.f));
-    transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 1, .0f));
-    vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-    m_p2DOvalObject->Record(commandBuffer);
+
+   ////----------------------------------------
+   ///2D PIPELINE
+   //
+   //m_p2DPipeline->Record(commandBuffer, m_vTextures[1]->GetDescriptorSets()[m_CurrentFrame]);
+   //
+   //transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, -1.f));
+   //transform = glm::scale(transform, glm::vec3(3.0f, 3.f, 0.f));
+   //transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
+   //vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+   //m_p2DObject->Record(commandBuffer);
+   //
+   //transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.f, 0.f));
+   //transform = glm::rotate(transform, Time::GetElapesedSec() * glm::radians(-m_RotationSpeed), glm::vec3(0.f, 1, .0f));
+   //vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+   //m_p2DOvalObject->Record(commandBuffer);
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -962,7 +925,7 @@ void Game::drawFrame()
 
     //3.Recording the command buffer
     vkResetCommandBuffer(m_vCommandBuffers[m_CurrentFrame], 0);
-    recordCommandBuffer(m_vCommandBuffers[m_CurrentFrame], imageIndex, m_p3DPipeline.get(), m_p3DObject2.get());
+    recordCommandBuffer(m_vCommandBuffers[m_CurrentFrame], imageIndex);
     
    
 
@@ -1087,10 +1050,10 @@ void Game::createBuffer(VkDeviceSize bufferSize,
                     VkBuffer& vertexBuffer, VkDeviceMemory& vertexBufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = bufferSize;
-    bufferInfo.usage = flags;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; //only used by graphicsqueue so exlusive is enough
+    bufferInfo.sType         = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size          = bufferSize;
+    bufferInfo.usage         = flags;
+    bufferInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE; //only used by graphicsqueue so exlusive is enough
 
     if (vkCreateBuffer(m_LogicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS)
         throw std::runtime_error("creation off vertex buffer failed");
@@ -1100,8 +1063,8 @@ void Game::createBuffer(VkDeviceSize bufferSize,
 
     //Memory allocation
     VkMemoryAllocateInfo allocateInfo{};
-    allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocateInfo.allocationSize = memRequirements.size;
+    allocateInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocateInfo.allocationSize  = memRequirements.size;
     allocateInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, memryProps);
 
     if (vkAllocateMemory(m_LogicalDevice, &allocateInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS)

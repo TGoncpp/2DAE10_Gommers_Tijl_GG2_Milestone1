@@ -40,11 +40,12 @@ add_executable(Vulkan
 				"vulkanbase/Object.h" "vulkanbase/Object.cpp"
 				"vulkanbase/semaphore.h"
 				"vulkanbase/structs.h"
+				"vulkanbase/instanceStruct.h"
 				"vulkanbase/Time.h" "vulkanbase/Time.cpp" 
                 "vulkanbase/Texture.h" "vulkanbase/Texture.cpp"
                 "vulkanbase/newCamera.h" "vulkanbase/newCamera.cpp"
                 "vulkanbase/UniformBufferObject.h"
-				"main.cpp" )
+				"main.cpp"  "vulkanbase/instanceStruct.h")
 add_dependencies(Vulkan Shaders)
 
 # Link libraries

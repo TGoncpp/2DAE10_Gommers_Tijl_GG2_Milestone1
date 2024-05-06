@@ -2,7 +2,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include "Structs.h"
+#include "InstanceStruct.h"
 #include <string>
+#include <memory>
 
 class Pipeline;
 
@@ -15,7 +17,7 @@ public:
         : m_vVertices2D{ vVertex }, m_vIndices{ vIndices }, m_Is3D{ false } {};
 
 	~SceneObject() = default;
-    void Init(VkPhysicalDevice& m_PhysicalDevicem ,VkDevice& logicDevice, VkCommandPool& commandPool, const int FrmasInFlight, VkQueue& graphicsQueue);
+    void Init(VkPhysicalDevice& m_PhysicalDevicem ,VkDevice& logicDevice, VkCommandPool& commandPool, const int FrmasInFlight, VkQueue& graphicsQueue, bool instanceRendering);
     void Record(VkCommandBuffer commandBuffer);
     void Destroy(VkDevice& logicDevice);
 
@@ -26,6 +28,7 @@ public:
 private:
     bool m_Is3D{ true };
     bool m_IsCollored{ true };
+    bool m_IsInstanceRendering{ true };
     //VkCommandPool m_CommandPool;
     //std::vector<VkCommandBuffer> m_vCommandBuffers;
     std::vector<Vertex3D> m_vVertices3D;
@@ -37,11 +40,19 @@ private:
     VkDeviceMemory m_IndexBufferMemory;
     std::string m_ModelPath{ "" };
 
+    //InstanceRenderingVariables
+    uint16_t m_InstanceCount{ 100 };
+    std::vector<InstanceVertex> m_vInstanceDate;
+    VkBuffer m_InstanceBuffer;
+    VkDeviceMemory m_InstanceBufferMemory;
+
 
     //init functions
     void loadModel();
+    void createInstanceValues();
     void createVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
     void createIndexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
+    void createInstanceVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
     //void createCommandBuffers(VkDevice& logicDevice, VkCommandPool& commandPool, const int FrmasInFlight);
 
     //HelperFunctions

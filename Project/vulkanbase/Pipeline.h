@@ -21,6 +21,9 @@ private:
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	bool m_Is3D{ true };
+	bool m_IsInstanceRendering{ true };
+	std::vector<VkVertexInputBindingDescription> m_vVertexBinding;
+	std::vector<VkVertexInputAttributeDescription> m_vVertexAttribute;
 
 
 	static std::vector<char> readFile(const std::string& filename);

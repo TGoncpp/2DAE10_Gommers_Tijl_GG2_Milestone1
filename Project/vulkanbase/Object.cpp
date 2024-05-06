@@ -7,10 +7,16 @@
 #include "vulkanbase/Pipeline.h"
 
 
-void SceneObject::Init(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, const int FrmasInFlight, VkQueue& graphicsQueue)
+void SceneObject::Init(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, const int FrmasInFlight, VkQueue& graphicsQueue, bool instanceRendering)
 {
+    m_IsInstanceRendering = instanceRendering;
     loadModel();
     createVertexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
+    if (m_IsInstanceRendering)
+    {
+        createInstanceValues();
+        createInstanceVertexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
+    }
     createIndexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
     //createCommandBuffers(logicDevice, commandPool, FrmasInFlight);
 }
@@ -22,9 +28,14 @@ void SceneObject::Record(VkCommandBuffer commandBuffer)
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_vIndices.size()), 1, 0, 0, 0);
-}
+    if (m_IsInstanceRendering)
+    {
+        //upload if update every fram
+        vkCmdBindVertexBuffers(commandBuffer, 1, 1, &m_InstanceBuffer, offsets);
+    }
 
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_vIndices.size()), m_InstanceCount, 0, 0, 0);
+}
 
 void SceneObject::Destroy(VkDevice& logicDevice)
 {
@@ -92,6 +103,21 @@ void SceneObject::loadModel()
 
             m_vIndices.push_back(mUniqueVertexes[vertex]);
         }
+    }
+}
+
+void SceneObject::createInstanceValues()
+{
+    glm::mat4 transform ;
+    for (int i{}; i < m_InstanceCount; ++i)
+    {
+        int x = i % 10;
+        int y = i / 10;
+        InstanceVertex instance{};
+        instance.texcoord = { 0.5f, 0.7f };
+        transform = glm::translate(glm::mat4(1.f), glm::vec3{1.f * x, 1.f * y, 0.f});
+        instance.modelTransform = transform;
+        m_vInstanceDate.push_back(instance);
     }
 }
 
@@ -168,6 +194,23 @@ void SceneObject::createIndexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& 
 
     vkDestroyBuffer(logicDevice, stagingBuffer, nullptr);
     vkFreeMemory(logicDevice, staginBufferMemory, nullptr);
+}
+
+void SceneObject::createInstanceVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue)
+{
+    VkDeviceSize bufferSize = sizeof(m_vInstanceDate[0]) * m_vInstanceDate.size() ;
+    
+    createBuffer(physicalDevice, logicDevice, bufferSize,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_InstanceBuffer, m_InstanceBufferMemory);
+
+    void* data;
+    void* srcData{ (void*)m_vInstanceDate.data() };
+    vkMapMemory(logicDevice, m_InstanceBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, srcData, static_cast<size_t>(bufferSize));
+
+   
 }
 
 

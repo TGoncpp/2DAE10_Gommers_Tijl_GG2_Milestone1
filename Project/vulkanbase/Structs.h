@@ -33,6 +33,7 @@ struct SwapChainSupportDetails
 
 struct Vertex3D 
 {
+	~Vertex3D() = default;
 	glm::vec3 pos;
 	glm::vec3 normal;
 	glm::vec2 texcoord;
@@ -40,16 +41,16 @@ struct Vertex3D
 	static VkVertexInputBindingDescription getBindDescription()
 	{
 		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding   = 0;
+		bindingDescription.binding   = 0;//-> put to 1 for instance rendering
 		bindingDescription.stride    = sizeof(Vertex3D);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; 
 		return bindingDescription;
 	}
 
 	static const int attributeNum{ 3 };
-	static std::array<VkVertexInputAttributeDescription, attributeNum> getAttributeDescriptions()
+	static std::vector<VkVertexInputAttributeDescription>  getAttributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, attributeNum> attributeDescriptions{};
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(attributeNum);
 		attributeDescriptions[0].binding  = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format   = VK_FORMAT_R32G32B32_SFLOAT;
@@ -77,6 +78,8 @@ struct Vertex3D
 
 struct Vertex2D
 {
+	~Vertex2D() = default;
+
 	glm::vec2 pos;
 	glm::vec3 normal;
 	glm::vec2 texcoord;
@@ -96,9 +99,9 @@ struct Vertex2D
 	}
 
 	static const int attributeNum{ 3 };
-	static std::array<VkVertexInputAttributeDescription, attributeNum> getAttributeDescriptions()
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, attributeNum> attributeDescriptions{};
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(attributeNum);
 		attributeDescriptions[0].binding  = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format   = VK_FORMAT_R32G32_SFLOAT;

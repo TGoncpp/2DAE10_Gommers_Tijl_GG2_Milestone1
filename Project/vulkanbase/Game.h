@@ -245,7 +245,7 @@ private:
     void createFramebuffer();
     void createCommandPool();
     void createCommandBuffers(std::vector<VkCommandBuffer>& commandBuffers);
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, Pipeline* pipeline, SceneObject* object);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawFrame();
 
     //SEMAPHORE AND FENCE

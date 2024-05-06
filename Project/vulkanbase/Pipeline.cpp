@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "structs.h"
+#include "instanceStruct.h"
 
 
 Pipeline::Pipeline(const std::string& vertShaderPath, const std::string& fragShaderPath, bool is3D)
@@ -48,25 +49,35 @@ void Pipeline::Init(VkDevice logicalDevice, VkExtent2D swapChainExtent, VkDescri
     dynamicInfo.pDynamicStates = vDynamicStates.data();
 
     //vertex format info 
-    VkVertexInputBindingDescription bindingDescription;
-    std::array<VkVertexInputAttributeDescription, 3>attributeDescription;
+   //VkVertexInputBindingDescription bindingDescription;
+   //std::array<VkVertexInputAttributeDescription, 3>attributeDescription;
     if (m_Is3D)
     {
-       bindingDescription = Vertex3D::getBindDescription();
-       attributeDescription = Vertex3D::getAttributeDescriptions();
+       m_vVertexBinding.emplace_back( Vertex3D::getBindDescription());
+       m_vVertexAttribute = Vertex3D::getAttributeDescriptions();
+       if (m_IsInstanceRendering)
+       {
+           m_vVertexBinding.emplace_back(InstanceVertex::getBindDescription());
+           uint32_t AllocStart = static_cast<uint32_t>(m_vVertexAttribute.size());
+           std::vector< VkVertexInputAttributeDescription> VertexAttribute = InstanceVertex::getAttributeDescriptions(AllocStart);
+           for (auto& e : VertexAttribute)
+           {
+               m_vVertexAttribute.emplace_back(e);
+           }
+       }
     }
     else
     {
-        bindingDescription   = Vertex2D::getBindDescription();
-        attributeDescription = Vertex2D::getAttributeDescriptions();
+        m_vVertexBinding.emplace_back(Vertex2D::getBindDescription());
+        m_vVertexAttribute = Vertex2D::getAttributeDescriptions();
     }
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescription.size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescription.data();
+    vertexInputInfo.vertexBindingDescriptionCount   = static_cast<uint32_t>(m_vVertexBinding.size());
+    vertexInputInfo.pVertexBindingDescriptions      = m_vVertexBinding.data();
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vVertexAttribute.size());
+    vertexInputInfo.pVertexAttributeDescriptions    = m_vVertexAttribute.data();
 
     //Input Assembly
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{};
@@ -179,14 +190,14 @@ void Pipeline::Init(VkDevice logicalDevice, VkExtent2D swapChainExtent, VkDescri
     pipelineInfo.stageCount = 2;
     pipelineInfo.pStages = vShaderStages;
     //Fixed Function stage
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pVertexInputState   = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssemblyInfo;
-    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pViewportState      = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = &depthStencil;//must be specified if the renderpass contains it
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = &dynamicInfo;
+    pipelineInfo.pMultisampleState   = &multisampling;
+    pipelineInfo.pDepthStencilState  = &depthStencil;//must be specified if the renderpass contains it
+    pipelineInfo.pColorBlendState    = &colorBlending;
+    pipelineInfo.pDynamicState       = &dynamicInfo;
     //layout
     pipelineInfo.layout = m_PipelineLayout;
     //Render pass
