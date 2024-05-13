@@ -42,7 +42,7 @@ private:
     float m_FieldOfView{ 1.f };
     float m_AspectRatio{ 1.f };
     const float m_NearPlane{ 0.1f };
-    const float m_FarPlane{ 10.f };
+    const float m_FarPlane{ 50.f };
 
     glm::vec3 m_Forward{};
     glm::vec3 m_Right{};
@@ -148,11 +148,11 @@ private:
     void SetRandomScale(std::vector<float>& v, int amount, float maxScale);
 
     std::vector<Vertex2D> m_vsQuare2D
-    {
-       {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f},{1.0, 0}},
-       {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{1.0, 0} },
-       {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, { 1.0, 0 }},
-       {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f},{ 1.0, 0 }}
+    { 
+       {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f},{0.0f, 0.f}},
+       {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{.0f, 1.0f} },
+       {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, { 1.0f, 1.f }},
+       {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f},{ 1.0f, 0.f }}
     };
     std::vector<uint32_t> m_vSquraInd
     {

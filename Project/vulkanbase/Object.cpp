@@ -116,32 +116,19 @@ void SceneObject::createInstanceValues()
     glm::mat4 transform ;
     for (int i{}; i < m_InstanceCount; ++i)
     {
-        int x = i % 10;
-        int y = i / 10;
+        int distance{ 2 };
+        int x = (i % 10) * distance;
+        int y = (i / 10) * distance;
+        int randomAngle = rand() % 360;
         InstanceVertex instance{};
         instance.texcoord = { 0.5f, 0.7f };
         transform = glm::translate(glm::mat4(1.f), glm::vec3{1.f * x, 1.f * y, 0.f});
+        transform = glm::rotate(transform, glm::radians<float>(randomAngle), glm::vec3{0.f, 0.f, 1.f});
         instance.modelTransform = transform;
         m_vInstanceDate.push_back(instance);
     }
 }
 
-//void SceneObject::createCommandBuffers(VkDevice& logicDevice, VkCommandPool& commandPool, const int FrmasInFlight)
-//{
-//    m_vCommandBuffers.resize(FrmasInFlight);
-//
-//    VkCommandBufferAllocateInfo allocInfo{};
-//    allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-//    allocInfo.commandPool        = commandPool;
-//    allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//    allocInfo.commandBufferCount = static_cast<uint32_t>(m_vCommandBuffers.size());
-//
-//    if (vkAllocateCommandBuffers(logicDevice, &allocInfo, m_vCommandBuffers.data()) != VK_SUCCESS)
-//    {
-//        throw std::runtime_error("Allocation off command buffer failed");
-//    }
-//
-//}
 
 void SceneObject::createVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue)
 {
