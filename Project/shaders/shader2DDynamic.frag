@@ -16,7 +16,7 @@ void main() {
     float diff = max(dot(fragNormal, lightDirection), 0.2);
 
     // Simple diffuse lighting
-    vec3 diffuse = diff * texture(texSampler,fragTexCoord  ).xyz; // Assuming white light
+    vec3 diffuse = diff * texture(texSampler,(fragTexCoord  + fragTexOffset) ).xyz; // Assuming white light
 
     // Output color
     outColor =  vec4(diffuse,1.0);

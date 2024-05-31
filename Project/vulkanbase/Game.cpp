@@ -121,11 +121,13 @@ void Game::initVulkan()
     m_p3DInstancePipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
     m_p3DDynamicPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
-    m_p2DObject     = std::make_unique< SceneObject>(m_vsQuare2D, m_vSquraInd);
+    m_p2DObject           = std::make_unique< SceneObject>(m_vsQuare2D, m_vSquraInd);
     FillOvalResources({}, 0.25f, 16, m_vOval2D, m_vOvalInd);
-    m_p2DOvalObject = std::make_unique< SceneObject>(m_vOval2D, m_vOvalInd);
-    m_p2DPipeline   = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader2D.frag.spv", false, false);
+    m_p2DOvalObject       = std::make_unique< SceneObject>(m_vOval2D, m_vOvalInd);
+    m_p2DDynamicPipeline  = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader2DDynamic.frag.spv", false, false);
+    m_p2DPipeline         = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader2D.frag.spv", false, false);
     m_p2DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
+    m_p2DDynamicPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
     m_pCamera = std::make_unique< Camera>(glm::vec3{ 25.0f, 25.0f, 6.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
     //m_pCamera->CalculateProjMat(); //Function that acts weirldly
@@ -139,6 +141,7 @@ void Game::initVulkan()
     m_vTextures.push_back(std::make_unique<Texture>("textures/flashy.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     m_vTextures.push_back(std::make_unique<Texture>("textures/vehicle_diffuse.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     m_vTextures.push_back(std::make_unique<Texture>("textures/tileClouds.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
+    m_vTextures.push_back(std::make_unique<Texture>("textures/water.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
@@ -196,6 +199,7 @@ void Game::cleanup()
     m_p3DInstancePipeline->Destroy(m_LogicalDevice);
     m_p3DDynamicPipeline->Destroy(m_LogicalDevice);
     m_p2DPipeline->Destroy(m_LogicalDevice);
+    m_p2DDynamicPipeline->Destroy(m_LogicalDevice);
 
     for (size_t i{}; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -911,6 +915,14 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     // 
     //Ground
     m_p2DPipeline->Record(commandBuffer, m_vTextures[1]->GetDescriptorSets()[m_CurrentFrame]);
+    
+    transform = glm::translate(glm::mat4(1.0f), glm::vec3(25.0f, 25.f, -0.15f));
+    transform = glm::scale(transform, glm::vec3(160.0f, 160.f, 1.f));
+    vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+    m_p2DOvalObject->Record(commandBuffer);
+   
+    //Water
+    m_p2DDynamicPipeline->Record(commandBuffer, m_vTextures[4]->GetDescriptorSets()[m_CurrentFrame]);
     
     transform = glm::translate(glm::mat4(1.0f), glm::vec3(25.0f, 25.f, -0.25f));
     transform = glm::scale(transform, glm::vec3(160.0f, 160.f, 1.f));

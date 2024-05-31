@@ -165,6 +165,7 @@ private:
     std::vector<uint32_t> m_vOvalInd;
     void FillOvalResources(const glm::vec2& pos, float radius, int numOfCorners, std::vector<Vertex2D>& vertices, std::vector<uint32_t>& indices);
     std::unique_ptr<Pipeline> m_p2DPipeline;
+    std::unique_ptr<Pipeline> m_p2DDynamicPipeline;
     std::unique_ptr<SceneObject> m_p2DObject;
     std::unique_ptr<SceneObject> m_p2DOvalObject;
 
