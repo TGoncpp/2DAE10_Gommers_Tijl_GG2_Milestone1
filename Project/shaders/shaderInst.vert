@@ -28,7 +28,7 @@ layout(location = 0) out vec3 fragNormal;
 layout(location = 1) out vec2 fragTexCoord; 
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * model * vec4(inPosition.xyz, 1.0);
+    gl_Position = ubo.proj * ubo.view * ps.model* model * vec4(inPosition.xyz, 1.0);
     vec4 tNormal =  ps.model * vec4(inNormal,0);
 
     fragNormal = normalize(tNormal.xyz); // interpolation of normal attribute in fragment shader.

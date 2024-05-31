@@ -111,9 +111,11 @@ void Game::initVulkan()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    m_p3DPlane           = std::make_unique< SceneObject>("models/vehicle.obj", true);
+    m_p3DPlane            = std::make_unique< SceneObject>("models/vehicle.obj", true);
     m_p3DRoom             = std::make_unique< SceneObject>("models/room.obj", true);
     m_p3DSkyDome          = std::make_unique< SceneObject>("models/skyBall.obj", true);
+    m_p3DTree             = std::make_unique< SceneObject>("models/tree.obj", true);
+    m_p3DTree->SetInstanceCountWithDistance(150, 350.f);
     m_p3DDynamicPipeline  = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shaderDyn.frag.spv", true, false);
     m_p3DPipeline         = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shader.frag.spv", true, false);
     m_p3DInstancePipeline = std::make_unique<Pipeline>("shaders/shaderInst.vert.spv", "shaders/shader.frag.spv", true, true);
@@ -142,12 +144,14 @@ void Game::initVulkan()
     m_vTextures.push_back(std::make_unique<Texture>("textures/vehicle_diffuse.png", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     m_vTextures.push_back(std::make_unique<Texture>("textures/tileClouds.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     m_vTextures.push_back(std::make_unique<Texture>("textures/water.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
+    m_vTextures.push_back(std::make_unique<Texture>("textures/tree.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
     m_p3DPlane->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
     m_p3DRoom->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, true);
     m_p3DSkyDome->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
+    m_p3DTree->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, true);
 
     m_p2DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
     m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
@@ -193,6 +197,7 @@ void Game::cleanup()
     m_p3DPlane->Destroy(m_LogicalDevice);
     m_p3DSkyDome->Destroy(m_LogicalDevice);
     m_p3DRoom->Destroy(m_LogicalDevice);
+    m_p3DTree->Destroy(m_LogicalDevice);
     m_p2DObject->Destroy(m_LogicalDevice);
     m_p2DOvalObject->Destroy(m_LogicalDevice);
     m_p3DPipeline->Destroy(m_LogicalDevice);
@@ -903,11 +908,21 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     
 
     //Room x 1000
-    m_p3DInstancePipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
+     m_p3DInstancePipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
+     
+     glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.f, 0.f));
+     vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+     m_p3DRoom->Record(commandBuffer);
+     
     
-    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.f, 0.f));
+     //trees x1000
+    m_p3DInstancePipeline->Record(commandBuffer, m_vTextures[5]->GetDescriptorSets()[m_CurrentFrame]);
+
+    transform = glm::translate(glm::mat4(1.0f), glm::vec3(20.f, 20.f, -1.f));
+    transform = glm::scale(transform, glm::vec3(0.010f, 0.01f, .01f));
+    //transform = glm::rotate(transform, glm::radians<float>(90), glm::vec3{ 0.f, 1.f, 0.f });
     vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-    m_p3DRoom->Record(commandBuffer);
+    m_p3DTree->Record(commandBuffer);
     
 
     //----------------------------------------

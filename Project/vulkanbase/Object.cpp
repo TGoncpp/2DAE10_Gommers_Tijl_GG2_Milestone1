@@ -14,7 +14,7 @@ void SceneObject::Init(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, 
     createVertexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
     if (m_IsInstanceRendering)
     {
-        createInstanceValues();
+        createInstanceValues(m_Distance);
         createInstanceVertexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
     }
     createIndexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
@@ -54,6 +54,12 @@ void SceneObject::Destroy(VkDevice& logicDevice)
     vkDestroyBuffer(logicDevice, m_VertexBuffer, nullptr);
     vkFreeMemory(logicDevice, m_VertexBufferMemory, nullptr);
    
+}
+
+void SceneObject::SetInstanceCountWithDistance(int count, float distance)
+{
+    m_InstanceCount = count;
+    m_Distance = distance;
 }
 
 
@@ -116,14 +122,14 @@ void SceneObject::loadModel()
     }
 }
 
-void SceneObject::createInstanceValues()
+void SceneObject::createInstanceValues(float distance)
 {
+    const int rowColum{ static_cast<int>(glm::sqrt(m_InstanceCount)) };
     glm::mat4 transform ;
     for (int i{}; i < m_InstanceCount; ++i)
     {
-        int distance{ 2 };
-        int x = (i % 33) * distance;
-        int y = (i / 33) * distance;
+        int x = (i % rowColum) * distance;
+        int y = (i / rowColum) * distance;
         int randomAngle = rand() % 360;
         int randomScale = (rand() % 20)/10.f +0.25f;
 

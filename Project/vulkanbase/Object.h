@@ -24,11 +24,13 @@ public:
     VkBuffer GetVertexBuffer()const { return m_VertexBuffer; };
     VkBuffer GetIndexBuffer()const { return m_IndexBuffer; };
     std::vector<uint32_t> GetIndices()const { return m_vIndices; };
+    void SetInstanceCountWithDistance(int count, float distance);
 
 private:
     bool m_Is3D{ true };
     bool m_IsCollored{ true };
     bool m_IsInstanceRendering{ true };
+    float m_Distance{ 2.f };
     //VkCommandPool m_CommandPool;
     //std::vector<VkCommandBuffer> m_vCommandBuffers;
     std::vector<Vertex3D> m_vVertices3D;
@@ -49,7 +51,7 @@ private:
 
     //init functions
     void loadModel();
-    void createInstanceValues();
+    void createInstanceValues(float distance);
     void createVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
     void createIndexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
     void createInstanceVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);

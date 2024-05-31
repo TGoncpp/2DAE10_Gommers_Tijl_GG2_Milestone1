@@ -144,6 +144,7 @@ private:
     std::unique_ptr<SceneObject> m_p3DPlane;
     std::unique_ptr<SceneObject> m_p3DRoom;
     std::unique_ptr<SceneObject> m_p3DSkyDome;
+    std::unique_ptr<SceneObject> m_p3DTree;
 
     
     std::vector< std::unique_ptr<Texture>> m_vTextures;
