@@ -111,13 +111,15 @@ void Game::initVulkan()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    m_p3DObject           = std::make_unique< SceneObject>("models/vehicle.obj", true);
+    m_p3DPlane           = std::make_unique< SceneObject>("models/vehicle.obj", true);
     m_p3DRoom             = std::make_unique< SceneObject>("models/room.obj", true);
     m_p3DSkyDome          = std::make_unique< SceneObject>("models/skyBall.obj", true);
-    m_p3DPipeline         = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shaderDyn.frag.spv", true, false);
+    m_p3DDynamicPipeline  = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shaderDyn.frag.spv", true, false);
+    m_p3DPipeline         = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shader.frag.spv", true, false);
     m_p3DInstancePipeline = std::make_unique<Pipeline>("shaders/shaderInst.vert.spv", "shaders/shader.frag.spv", true, true);
     m_p3DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
     m_p3DInstancePipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
+    m_p3DDynamicPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
     m_p2DObject     = std::make_unique< SceneObject>(m_vsQuare2D, m_vSquraInd);
     FillOvalResources({}, 0.25f, 16, m_vOval2D, m_vOvalInd);
@@ -140,7 +142,7 @@ void Game::initVulkan()
     
     createCommandBuffers(m_vCommandBuffers);
     createCommandBuffers(m_vCommandBuffers2D);
-    m_p3DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
+    m_p3DPlane->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
     m_p3DRoom->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, true);
     m_p3DSkyDome->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
 
@@ -185,13 +187,14 @@ void Game::cleanup()
    
     vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
     
-    m_p3DObject->Destroy(m_LogicalDevice);
+    m_p3DPlane->Destroy(m_LogicalDevice);
     m_p3DSkyDome->Destroy(m_LogicalDevice);
     m_p3DRoom->Destroy(m_LogicalDevice);
     m_p2DObject->Destroy(m_LogicalDevice);
     m_p2DOvalObject->Destroy(m_LogicalDevice);
     m_p3DPipeline->Destroy(m_LogicalDevice);
     m_p3DInstancePipeline->Destroy(m_LogicalDevice);
+    m_p3DDynamicPipeline->Destroy(m_LogicalDevice);
     m_p2DPipeline->Destroy(m_LogicalDevice);
 
     for (size_t i{}; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -874,15 +877,28 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
 
     //----------------------------------------
     //3D PIPELINE
-     m_p3DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
+
+    //SkyDome
+     m_p3DDynamicPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
      
      glm::mat4 transform0 = glm::translate(glm::mat4(1.0f), glm::vec3(25.f, 25.f, 1.f));
      transform0 = glm::scale(transform0, glm::vec3(5.0f, 5.f, 1.f));
      vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform0);
      m_p3DSkyDome->Record(commandBuffer);
-    
      
-    //Room x 500
+     //Plane
+     m_p3DPipeline->Record(commandBuffer, m_vTextures[2]->GetDescriptorSets()[m_CurrentFrame]);
+     
+     transform0 = glm::translate(glm::mat4(1.0f), glm::vec3(25.f, 25.f, 5.f));
+     transform0 = glm::scale(transform0, glm::vec3(0.10f, 0.1f, .1f));
+     transform0 = glm::rotate(transform0, glm::radians<float>(90), glm::vec3{ 1.f, 0.f, 0.f });
+     transform0 = glm::rotate(transform0, Time::GetElapesedSec(), glm::vec3{0.f, 1.f, 0.f});
+     transform0 = glm::translate(transform0, glm::vec3(0.f, 0.f, 80.f));
+     vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform0);
+     m_p3DPlane->Record(commandBuffer);
+    
+
+    //Room x 1000
     m_p3DInstancePipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
     
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.f, 0.f));
@@ -892,6 +908,7 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
 
     //----------------------------------------
     //2D PIPELINE
+    // 
     //Ground
     m_p2DPipeline->Record(commandBuffer, m_vTextures[1]->GetDescriptorSets()[m_CurrentFrame]);
     

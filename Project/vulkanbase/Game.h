@@ -140,7 +140,8 @@ private:
     std::unique_ptr<Camera> m_pCamera;
     std::unique_ptr<Pipeline> m_p3DPipeline;
     std::unique_ptr<Pipeline> m_p3DInstancePipeline;
-    std::unique_ptr<SceneObject> m_p3DObject;
+    std::unique_ptr<Pipeline> m_p3DDynamicPipeline;
+    std::unique_ptr<SceneObject> m_p3DPlane;
     std::unique_ptr<SceneObject> m_p3DRoom;
     std::unique_ptr<SceneObject> m_p3DSkyDome;
 
