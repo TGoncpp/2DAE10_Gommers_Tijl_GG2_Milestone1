@@ -122,8 +122,8 @@ void SceneObject::createInstanceValues()
     for (int i{}; i < m_InstanceCount; ++i)
     {
         int distance{ 2 };
-        int x = (i % 25) * distance;
-        int y = (i / 25) * distance;
+        int x = (i % 33) * distance;
+        int y = (i / 33) * distance;
         int randomAngle = rand() % 360;
         int randomScale = (rand() % 20)/10.f +0.25f;
 

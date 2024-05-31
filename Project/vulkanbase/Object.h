@@ -41,7 +41,7 @@ private:
     std::string m_ModelPath{ "" };
 
     //InstanceRenderingVariables
-    uint16_t m_InstanceCount{ 500 };
+    uint16_t m_InstanceCount{ 1000 };
     std::vector<InstanceVertex> m_vInstanceDate;
     VkBuffer m_InstanceBuffer;
     VkDeviceMemory m_InstanceBufferMemory;

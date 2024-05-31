@@ -114,7 +114,7 @@ void Game::initVulkan()
     m_p3DObject           = std::make_unique< SceneObject>("models/vehicle.obj", true);
     m_p3DRoom             = std::make_unique< SceneObject>("models/room.obj", true);
     m_p3DSkyDome          = std::make_unique< SceneObject>("models/skyBall.obj", true);
-    m_p3DPipeline         = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shader.frag.spv", true, false);
+    m_p3DPipeline         = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shaderDyn.frag.spv", true, false);
     m_p3DInstancePipeline = std::make_unique<Pipeline>("shaders/shaderInst.vert.spv", "shaders/shader.frag.spv", true, true);
     m_p3DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
     m_p3DInstancePipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
@@ -125,7 +125,7 @@ void Game::initVulkan()
     m_p2DPipeline   = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader2D.frag.spv", false, false);
     m_p2DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
-    m_pCamera = std::make_unique< Camera>(glm::vec3{ 25.0f, 25.0f, 15.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
+    m_pCamera = std::make_unique< Camera>(glm::vec3{ 25.0f, 25.0f, 6.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
     //m_pCamera->CalculateProjMat(); //Function that acts weirldly
     //m_pCamera->CalculateViewMat(); //Function that acts weirldly
     createCommandPool();
@@ -877,7 +877,7 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
      m_p3DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
      
      glm::mat4 transform0 = glm::translate(glm::mat4(1.0f), glm::vec3(25.f, 25.f, 1.f));
-     transform0 = glm::scale(transform0, glm::vec3(4.0f, 4.f, 1.f));
+     transform0 = glm::scale(transform0, glm::vec3(5.0f, 5.f, 1.f));
      vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform0);
      m_p3DSkyDome->Record(commandBuffer);
     
@@ -895,8 +895,8 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     //Ground
     m_p2DPipeline->Record(commandBuffer, m_vTextures[1]->GetDescriptorSets()[m_CurrentFrame]);
     
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(20.0f, 20.f, -0.25f));
-    transform = glm::scale(transform, glm::vec3(60.0f, 60.f, 1.f));
+    transform = glm::translate(glm::mat4(1.0f), glm::vec3(25.0f, 25.f, -0.25f));
+    transform = glm::scale(transform, glm::vec3(160.0f, 160.f, 1.f));
     vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
     m_p2DObject->Record(commandBuffer);
    
