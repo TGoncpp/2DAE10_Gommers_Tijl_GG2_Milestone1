@@ -111,18 +111,21 @@ void Game::initVulkan()
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    m_p3DObject     = std::make_unique< SceneObject>("models/vehicle.obj", true);
-    m_p3DObject2    = std::make_unique< SceneObject>("models/room.obj", true);
-    m_p3DPipeline   = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shader.frag.spv", true);
+    m_p3DObject           = std::make_unique< SceneObject>("models/vehicle.obj", true);
+    m_p3DRoom             = std::make_unique< SceneObject>("models/room.obj", true);
+    m_p3DSkyDome          = std::make_unique< SceneObject>("models/skyBall.obj", true);
+    m_p3DPipeline         = std::make_unique<Pipeline>("shaders/shader.vert.spv", "shaders/shader.frag.spv", true, false);
+    m_p3DInstancePipeline = std::make_unique<Pipeline>("shaders/shaderInst.vert.spv", "shaders/shader.frag.spv", true, true);
     m_p3DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
+    m_p3DInstancePipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
     m_p2DObject     = std::make_unique< SceneObject>(m_vsQuare2D, m_vSquraInd);
     FillOvalResources({}, 0.25f, 16, m_vOval2D, m_vOvalInd);
     m_p2DOvalObject = std::make_unique< SceneObject>(m_vOval2D, m_vOvalInd);
-    m_p2DPipeline   = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader2D.frag.spv", false);
+    m_p2DPipeline   = std::make_unique<Pipeline>("shaders/shader2D.vert.spv", "shaders/shader2D.frag.spv", false, false);
     m_p2DPipeline->Init(m_LogicalDevice, m_SwapChainExtent, m_DescriptorSetLayout, m_RenderPass, m_MsaaSamples);
 
-    m_pCamera = std::make_unique< Camera>(glm::vec3{ 3.0f, 2.0f, 2.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
+    m_pCamera = std::make_unique< Camera>(glm::vec3{ 25.0f, 25.0f, 15.0f }, glm::radians(45.f), m_SwapChainExtent.width / (float)m_SwapChainExtent.height);
     //m_pCamera->CalculateProjMat(); //Function that acts weirldly
     //m_pCamera->CalculateViewMat(); //Function that acts weirldly
     createCommandPool();
@@ -136,9 +139,10 @@ void Game::initVulkan()
     m_vTextures.push_back(std::make_unique<Texture>("textures/tileClouds.jpg", m_PhysicalDevice, m_LogicalDevice, m_CommandPool, m_GraphicsQueue, MAX_FRAMES_IN_FLIGHT));
     
     createCommandBuffers(m_vCommandBuffers);
-    //createCommandBuffers(m_vCommandBuffers2D);
+    createCommandBuffers(m_vCommandBuffers2D);
     m_p3DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
-    m_p3DObject2->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, true);
+    m_p3DRoom->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, true);
+    m_p3DSkyDome->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
 
     m_p2DObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
     m_p2DOvalObject->Init(m_PhysicalDevice, m_LogicalDevice, m_CommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsQueue, false);
@@ -182,10 +186,12 @@ void Game::cleanup()
     vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
     
     m_p3DObject->Destroy(m_LogicalDevice);
-    m_p3DObject2->Destroy(m_LogicalDevice);
+    m_p3DSkyDome->Destroy(m_LogicalDevice);
+    m_p3DRoom->Destroy(m_LogicalDevice);
     m_p2DObject->Destroy(m_LogicalDevice);
     m_p2DOvalObject->Destroy(m_LogicalDevice);
     m_p3DPipeline->Destroy(m_LogicalDevice);
+    m_p3DInstancePipeline->Destroy(m_LogicalDevice);
     m_p2DPipeline->Destroy(m_LogicalDevice);
 
     for (size_t i{}; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -868,71 +874,31 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
 
     //----------------------------------------
     //3D PIPELINE
-
-   //Room x 100
-   m_p3DPipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
-   
-   glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.f, 0.f));
-   //transform = glm::rotate(transform, /*Time::GetElapesedSec() **/ glm::radians(-m_RotationSpeed), glm::vec3(0.f, 0, 1.0f));
-   vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p3DObject2->Record(commandBuffer);
+     m_p3DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
+     
+     glm::mat4 transform0 = glm::translate(glm::mat4(1.0f), glm::vec3(25.f, 25.f, 1.f));
+     transform0 = glm::scale(transform0, glm::vec3(4.0f, 4.f, 1.f));
+     vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform0);
+     m_p3DSkyDome->Record(commandBuffer);
     
+     
+    //Room x 500
+    m_p3DInstancePipeline->Record(commandBuffer, m_vTextures[0]->GetDescriptorSets()[m_CurrentFrame]);
+    
+    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.f, 0.f, 0.f));
+    vkCmdPushConstants(commandBuffer, m_p3DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+    m_p3DRoom->Record(commandBuffer);
     
 
-   //----------------------------------------
-   //2D PIPELINE
-   //Ground
-   m_p2DPipeline->Record(commandBuffer, m_vTextures[1]->GetDescriptorSets()[m_CurrentFrame]);
-   
-   transform = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.f, -1.f));
-   transform = glm::scale(transform, glm::vec3(50.0f, 50.f, 1.f));
-   vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p2DObject->Record(commandBuffer);
-   
-   //sky top
-   m_p2DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
-   transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.f, 25.f));
-   transform = glm::rotate(transform, glm::radians<float>(180), glm::vec3(0.0f, 1.f, 0.f));
-   transform = glm::scale(transform, glm::vec3(50.0f, 50.f, 1.f));
-   //transform = glm::translate(transform, glm::vec3(0.0f, 0.f, 0.f));
-   vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p2DObject->Record(commandBuffer);
-   
-   //sky side
-   m_p2DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
-   transform = glm::translate(glm::mat4(1.0f), glm::vec3(-25.0f, 0.f, -1.f));
-   transform = glm::rotate(transform, glm::radians<float>(90), glm::vec3(.0f, 1.f, 0.f));
-   transform = glm::scale(transform, glm::vec3(90.0f, 90.f, 1.f));
-   //transform = glm::translate(transform, glm::vec3(0.0f, 0.f, 0.f));
-   vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p2DObject->Record(commandBuffer);
-   
-   //sky side
-   m_p2DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
-   transform = glm::translate(glm::mat4(1.0f), glm::vec3(25.0f, 0.f, -1.f));
-   transform = glm::rotate(transform, glm::radians<float>(-90), glm::vec3(.0f, 1.f, 0.f));
-   transform = glm::scale(transform, glm::vec3(90.0f, 90.f, 1.f));
-   //transform = glm::translate(transform, glm::vec3(0.0f, 0.f, 0.f));
-   vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p2DObject->Record(commandBuffer);
-  
-   //sky side
-   m_p2DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
-   transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 25.f, -1.f));
-   transform = glm::rotate(transform, glm::radians<float>(90), glm::vec3(1.0f, 0.f, 0.f));
-   transform = glm::scale(transform, glm::vec3(90.0f, 90.f, 1.f));
-   //transform = glm::translate(transform, glm::vec3(0.0f, 0.f, 0.f));
-   vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p2DObject->Record(commandBuffer);
-   
-   //sky side
-   m_p2DPipeline->Record(commandBuffer, m_vTextures[3]->GetDescriptorSets()[m_CurrentFrame]);
-   transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.f, -1.f));
-   transform = glm::rotate(transform, glm::radians<float>(-90), glm::vec3(1.0f, 0.f, 0.f));
-   transform = glm::scale(transform, glm::vec3(90.0f, 90.f, 1.f));
-   //transform = glm::translate(transform, glm::vec3(0.0f, 0.f, 0.f));
-   vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
-   m_p2DObject->Record(commandBuffer);
+    //----------------------------------------
+    //2D PIPELINE
+    //Ground
+    m_p2DPipeline->Record(commandBuffer, m_vTextures[1]->GetDescriptorSets()[m_CurrentFrame]);
+    
+    transform = glm::translate(glm::mat4(1.0f), glm::vec3(20.0f, 20.f, -0.25f));
+    transform = glm::scale(transform, glm::vec3(60.0f, 60.f, 1.f));
+    vkCmdPushConstants(commandBuffer, m_p2DPipeline->GetPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &transform);
+    m_p2DObject->Record(commandBuffer);
    
 
     vkCmdEndRenderPass(commandBuffer);
@@ -1163,10 +1129,8 @@ void Game::createDescriptorSetLayout()
 void Game::updateUniformBuffer(uint32_t currentImage)
 {
     UniformBufferObject ubo{};
-    //ubo.model = glm::rotate(glm::mat4(1.0f), /*Time::GetElapesedSec() **/ glm::radians(m_RotationSpeed), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(Time::GetElapesedSec() * 0.15f, 0.0f, 1.0f));
-    //ubo.view  = m_pCamera->GetViewMat();
-    //ubo.proj  = m_pCamera->GetProjMat();
+    
     ubo.view = m_pCamera->CalculateViewMat();
     ubo.proj = m_pCamera-> CalculateProjMat();
 

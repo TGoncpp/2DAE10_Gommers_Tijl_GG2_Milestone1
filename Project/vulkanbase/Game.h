@@ -42,14 +42,14 @@ private:
     float m_FieldOfView{ 1.f };
     float m_AspectRatio{ 1.f };
     const float m_NearPlane{ 0.1f };
-    const float m_FarPlane{ 50.f };
+    const float m_FarPlane{ 60.f };
 
     glm::vec3 m_Forward{};
     glm::vec3 m_Right{};
     glm::vec3 m_Up{ glm::vec3{ 0.f,0.f,1.f } };
     glm::vec2 m_DragStart{};
-    float m_Yaw{ glm::radians(120.f)};
-    float m_Pitch{ glm::radians(-120.f)};
+    float m_Yaw{ glm::radians(-100.f)};
+    float m_Pitch{ glm::radians(120.f)};
 
 };
 
@@ -139,8 +139,10 @@ private:
 
     std::unique_ptr<Camera> m_pCamera;
     std::unique_ptr<Pipeline> m_p3DPipeline;
+    std::unique_ptr<Pipeline> m_p3DInstancePipeline;
     std::unique_ptr<SceneObject> m_p3DObject;
-    std::unique_ptr<SceneObject> m_p3DObject2;
+    std::unique_ptr<SceneObject> m_p3DRoom;
+    std::unique_ptr<SceneObject> m_p3DSkyDome;
 
     
     std::vector< std::unique_ptr<Texture>> m_vTextures;

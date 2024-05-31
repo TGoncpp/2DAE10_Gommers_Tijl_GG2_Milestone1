@@ -7,8 +7,8 @@
 #include "instanceStruct.h"
 
 
-Pipeline::Pipeline(const std::string& vertShaderPath, const std::string& fragShaderPath, bool is3D)
-    :m_VerShader{vertShaderPath}, m_FragShader{fragShaderPath}, m_Is3D{is3D}
+Pipeline::Pipeline(const std::string& vertShaderPath, const std::string& fragShaderPath, bool is3D, bool useInstanceRendering)
+    :m_VerShader{ vertShaderPath }, m_FragShader{ fragShaderPath }, m_Is3D{ is3D }, m_IsInstanceRendering{ useInstanceRendering }
 {
 }
 

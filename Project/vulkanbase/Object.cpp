@@ -25,16 +25,21 @@ void SceneObject::Record(VkCommandBuffer commandBuffer)
 {
     VkBuffer vertexBuffers[] = { m_VertexBuffer };
     VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     if (m_IsInstanceRendering)
     {
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
         //upload if update every fram
         vkCmdBindVertexBuffers(commandBuffer, 1, 1, &m_InstanceBuffer, offsets);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_vIndices.size()), m_InstanceCount, 0, 0, 0);
     }
-
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_vIndices.size()), m_InstanceCount, 0, 0, 0);
+    else
+    {
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_vIndices.size()), 1, 0, 0, 0);
+    }
 }
 
 void SceneObject::Destroy(VkDevice& logicDevice)
@@ -117,13 +122,16 @@ void SceneObject::createInstanceValues()
     for (int i{}; i < m_InstanceCount; ++i)
     {
         int distance{ 2 };
-        int x = (i % 10) * distance;
-        int y = (i / 10) * distance;
+        int x = (i % 25) * distance;
+        int y = (i / 25) * distance;
         int randomAngle = rand() % 360;
+        int randomScale = (rand() % 20)/10.f +0.25f;
+
         InstanceVertex instance{};
         instance.texcoord = { 0.5f, 0.7f };
         transform = glm::translate(glm::mat4(1.f), glm::vec3{1.f * x, 1.f * y, 0.f});
         transform = glm::rotate(transform, glm::radians<float>(randomAngle), glm::vec3{0.f, 0.f, 1.f});
+        transform = glm::scale(transform, glm::vec3{ randomScale, randomScale, randomScale });
         instance.modelTransform = transform;
         m_vInstanceDate.push_back(instance);
     }
