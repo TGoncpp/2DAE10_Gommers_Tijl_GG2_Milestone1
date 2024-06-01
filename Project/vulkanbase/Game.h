@@ -48,7 +48,7 @@ private:
     glm::vec3 m_Right{};
     glm::vec3 m_Up{ glm::vec3{ 0.f,0.f,1.f } };
     glm::vec2 m_DragStart{};
-    float m_Yaw{ glm::radians(120.f)};
+    float m_Yaw{ glm::radians(140.f)};
     float m_Pitch{ glm::radians(100.f)};
 
 };
@@ -145,6 +145,7 @@ private:
     std::unique_ptr<SceneObject> m_p3DRoom;
     std::unique_ptr<SceneObject> m_p3DSkyDome;
     std::unique_ptr<SceneObject> m_p3DTree;
+    std::unique_ptr<SceneObject> m_p3DBoot;
 
     
     std::vector< std::unique_ptr<Texture>> m_vTextures;

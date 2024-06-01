@@ -25,6 +25,7 @@ public:
     VkBuffer GetIndexBuffer()const { return m_IndexBuffer; };
     std::vector<uint32_t> GetIndices()const { return m_vIndices; };
     void SetInstanceCountWithDistance(int count, float distance);
+    void SetInstanceData(std::vector<InstanceVertex>& vTransforms);
 
 private:
     bool m_Is3D{ true };
@@ -44,14 +45,14 @@ private:
 
     //InstanceRenderingVariables
     uint16_t m_InstanceCount{ 1000 };
-    std::vector<InstanceVertex> m_vInstanceDate;
+    std::vector<InstanceVertex> m_vInstanceData;
     VkBuffer m_InstanceBuffer;
     VkDeviceMemory m_InstanceBufferMemory;
 
 
     //init functions
     void loadModel();
-    void createInstanceValues(float distance);
+    void createInstanceValues();
     void createVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
     void createIndexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);
     void createInstanceVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue);

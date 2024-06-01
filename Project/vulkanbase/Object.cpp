@@ -14,7 +14,7 @@ void SceneObject::Init(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, 
     createVertexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
     if (m_IsInstanceRendering)
     {
-        createInstanceValues(m_Distance);
+        createInstanceValues();
         createInstanceVertexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
     }
     createIndexBuffer(physicalDevice, logicDevice, commandPool, graphicsQueue);
@@ -60,6 +60,12 @@ void SceneObject::SetInstanceCountWithDistance(int count, float distance)
 {
     m_InstanceCount = count;
     m_Distance = distance;
+}
+
+void SceneObject::SetInstanceData(std::vector<InstanceVertex>& vTransforms)
+{
+    m_InstanceCount = vTransforms.size();
+    m_vInstanceData = vTransforms;
 }
 
 
@@ -122,14 +128,16 @@ void SceneObject::loadModel()
     }
 }
 
-void SceneObject::createInstanceValues(float distance)
+void SceneObject::createInstanceValues()
 {
+    if (m_vInstanceData.size() != 0)return;
+
     const int rowColum{ static_cast<int>(glm::sqrt(m_InstanceCount)) };
     glm::mat4 transform ;
     for (int i{}; i < m_InstanceCount; ++i)
     {
-        int x = (i % rowColum) * distance;
-        int y = (i / rowColum) * distance;
+        int x = (i % rowColum) * m_Distance;
+        int y = (i / rowColum) * m_Distance;
         int randomAngle = rand() % 360;
         int randomScale = (rand() % 20)/10.f +0.25f;
 
@@ -139,7 +147,7 @@ void SceneObject::createInstanceValues(float distance)
         transform = glm::rotate(transform, glm::radians<float>(randomAngle), glm::vec3{0.f, 0.f, 1.f});
         transform = glm::scale(transform, glm::vec3{ randomScale, randomScale, randomScale });
         instance.modelTransform = transform;
-        m_vInstanceDate.push_back(instance);
+        m_vInstanceData.push_back(instance);
     }
 }
 
@@ -204,7 +212,7 @@ void SceneObject::createIndexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& 
 
 void SceneObject::createInstanceVertexBuffer(VkPhysicalDevice& physicalDevice, VkDevice& logicDevice, VkCommandPool& commandPool, VkQueue& graphicsQueue)
 {
-    VkDeviceSize bufferSize = sizeof(m_vInstanceDate[0]) * m_vInstanceDate.size() ;
+    VkDeviceSize bufferSize = sizeof(m_vInstanceData[0]) * m_vInstanceData.size() ;
     
     createBuffer(physicalDevice, logicDevice, bufferSize,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -212,7 +220,7 @@ void SceneObject::createInstanceVertexBuffer(VkPhysicalDevice& physicalDevice, V
         m_InstanceBuffer, m_InstanceBufferMemory);
 
     void* data;
-    void* srcData{ (void*)m_vInstanceDate.data() };
+    void* srcData{ (void*)m_vInstanceData.data() };
     vkMapMemory(logicDevice, m_InstanceBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, srcData, static_cast<size_t>(bufferSize));
 
